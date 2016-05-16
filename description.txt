@@ -1,0 +1,60 @@
+UI processing:
+    file menu
+        button: quit
+        button: load dataset
+
+    label: "Label cell program"
+    label: "Follow the prompts. You can quit at any time. The images are saved automatically when you move to the next cell.
+
+    color image of the cell
+
+    label: "Step 1: Mark damaged image or leave blank"
+    4 checkboxes: part of image cutoff, more than two cells, no cell, marks or obstructions across image from process
+
+    label: "Step 2: Select type of cell"
+    buttons to select the type
+    7 Neutrophil, Lymphocyte, Monocyte, Eosinophil, Basophil, Unsure, no cell
+
+    Back button to go to previous cell
+
+UI end screen:
+    file menu:
+        button: quit
+        button: load dataset
+    label: all done, load a new file if you wish to continue. Thanks!"
+    back button
+
+scenarios:
+    human hits back button
+        erase previous labels at index-1 in database, set index to index-1
+        initialize blank UI, display the previous image at index
+    load first dataset
+        load dataset:
+            create database if not exists otherwise use existing database
+            if database contains filename
+                get all data that has not been processed
+                if processed_data == 0
+                    go to end screen with message "already labeled. if your positive that this has not been labeled before, rename the file and try again"
+                else:
+                    display first result
+                    wait for human to process
+            else:
+                open image numpy array
+                create entries in database based on the index position of each image in the numpy array
+                display first result
+                wait for human to process
+
+    human hits a cell button:
+        get values of UI
+        enter into database at index, mark entry as processed
+        load new entry into UI at index+1
+        if no more remaining then display end screen
+        
+            
+
+database:
+    primary_key(file_name, index_in_array), type, cutoff, more_than_one, nocell, obstructions, processed
+
+readme:
+
+
