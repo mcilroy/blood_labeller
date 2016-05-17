@@ -1,14 +1,16 @@
+import constants
 import numpy as np
 import os
 import sqlite3
 from entry import Entry
+import ntpath
 
 
 class DB:
-    def __init__(self):
+    def __init__(self, file_path):
         self.conn = sqlite3.connect('cells.db')
         self.idx = 0
-        self.training_images, self.file_name = load_data()
+        self.training_images, self.file_name = load_data(file_path)
         self.entries = []
         #self.restart()
         self.create_table_if_not_exists()
@@ -55,6 +57,18 @@ class DB:
             return True
         else:
             return False
+
+    def get_processed_clean_entries(self):
+        entries = []
+        c = self.conn.cursor()
+        c.execute('''SELECT index_in_array, cell_type FROM cells where file_name=? AND (cell_type=? OR cell_type=? OR
+        cell_type=? OR cell_type=? OR cell_type=?) AND cut_off=0 AND more_than_one=0 AND obstructions=0 AND processed=1
+        ''', (self.file_name, constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
+              constants.BASOPHIL))
+        rows = c.fetchall()
+        for row in rows:
+            entries.append(Entry(self.file_name, row[0], row[1], 0, 0, 0, 1))
+        return entries
 
     def get_entries_array(self, entry):
         image = self.training_images[entry.index_in_array, :, :, :]
@@ -109,12 +123,13 @@ class DB:
         self.conn.close()
 
 
-def load_data():
-    DATA_LOCATION = '../../AlanFine'
-    FILE_NAME = 'monocytes_neutrophils.npz'
-    train_val = np.load(os.path.join(DATA_LOCATION, FILE_NAME))
+def load_data(file_path):
+    file_name = ntpath.basename(str(file_path))
+    #DATA_LOCATION = '../../AlanFine'
+    #FILE_NAME = 'monocytes_neutrophils.npz'
+    train_val = np.load(str(file_path))
     # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
     neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)
     monocytes = np.rollaxis(train_val['monocytes'], 1, 4)
     training_images = np.concatenate([neutrophils, monocytes])[0:5, :, :, :]
-    return training_images, FILE_NAME
+    return training_images, file_name

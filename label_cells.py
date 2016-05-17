@@ -50,16 +50,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
 
-    def load_data(self):
-        self.the_db = db.DB()
-        if not self.the_db.get_unprocessed_entries():
-            self.display_opening_menu("You've already processed that file 100%. If you are think you haven't try "
-                                      "renaming the file")
-        else:
-            if self.the_db.more_entries_available():
-                entry = self.the_db.get_next_entry()
-                self.display_cell_ui(entry)
-
     def file_quit(self):
         self.close()
 
@@ -212,6 +202,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         vbox.addLayout(hbox3)
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
+
+    def load_data(self):
+        file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '.')
+        self.the_db = db.DB(file_path)
+        if not self.the_db.get_unprocessed_entries():
+            self.display_opening_menu("You've already processed that file 100%. If you are think you haven't try "
+                                      "renaming the file")
+        else:
+            if self.the_db.more_entries_available():
+                entry = self.the_db.get_next_entry()
+                self.display_cell_ui(entry)
 
 qApp = QtGui.QApplication(sys.argv)
 
