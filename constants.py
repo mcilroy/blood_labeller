@@ -1,0 +1,7 @@
+NEUTROPHIL = "neutrophil"
+MONOCYTE = "monocyte"
+LYMPHOCYTE = "lymphocyte"
+BASOPHIL = "basophil"
+EOSINOPHIL = "eosinophil"
+NOT_SURE = "notsure"
+NO_CELL = "nocell"

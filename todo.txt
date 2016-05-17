@@ -1,0 +1,8 @@
+bug:
+    self.idx is not the index_in_array
+check:
+    is self.idx being properly set? 
+    can my program handle filling out a dataset half way and then reloading?
+    when you save you use the idx to find the current entry, and idx = 1 more than it should
+    if you are at the last one it wont increase idx so it is the right number
+    solution: is to save before checking for new values
