@@ -6,3 +6,6 @@ check:
     when you save you use the idx to find the current entry, and idx = 1 more than it should
     if you are at the last one it wont increase idx so it is the right number
     solution: is to save before checking for new values
+
+questions:
+    should the labeller allow people to label more than one cell?

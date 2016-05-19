@@ -12,7 +12,7 @@ class DB:
         self.idx = 0
         self.training_images, self.file_name = load_data(file_path)
         self.entries = []
-        #self.restart()
+        self.restart()
         self.create_table_if_not_exists()
         self.check_if_data_seen_before()
 
@@ -129,7 +129,7 @@ def load_data(file_path):
     #FILE_NAME = 'monocytes_neutrophils.npz'
     train_val = np.load(str(file_path))
     # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
-    neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)
-    monocytes = np.rollaxis(train_val['monocytes'], 1, 4)
-    training_images = np.concatenate([neutrophils, monocytes])[0:5, :, :, :]
+    neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)[10:15, :, :, :]
+    monocytes = np.rollaxis(train_val['monocytes'], 1, 4)[10:15, :, :, :]
+    training_images = np.concatenate([neutrophils, monocytes])
     return training_images, file_name

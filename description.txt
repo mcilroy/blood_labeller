@@ -9,7 +9,7 @@ UI processing:
     color image of the cell
 
     label: "Step 1: Mark damaged image or leave blank"
-    4 checkboxes: part of image cutoff, more than two cells, no cell, marks or obstructions across image from process
+    4 checkboxes: part of image cutoff, more than two cells, marks or obstructions across image from process
 
     label: "Step 2: Select type of cell"
     buttons to select the type
@@ -51,10 +51,8 @@ scenarios:
         if no more remaining then display end screen
         
             
-
 database:
-    primary_key(file_name, index_in_array), type, cutoff, more_than_one, nocell, obstructions, processed
+    primary_key(file_name, index_in_array), cell_type, cutoff, more_than_one, obstructions, processed
 
 readme:
-
 

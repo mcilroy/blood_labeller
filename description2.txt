@@ -1,0 +1,125 @@
+UI processing:
+    title: "Label cell program"
+    file menu
+        button: quit
+        button: load dataset
+
+    label: "Follow the prompts. You can quit at any time. The images are saved automatically when you move to the next cell.
+    label: cell type ex. Neutrophils
+
+    color grid of cells
+
+    label: "Step 1: Mark damaged image or leave blank"
+    4 checkboxes: part of image cutoff, more than two cells, marks or obstructions across image from process
+
+    label: "Step 2: Select type of cell"
+    buttons to select the type
+    7 Neutrophil, Lymphocyte, Monocyte, Eosinophil, Basophil, Unsure, no cell
+
+    Back button to go to previous cell
+
+UI end screen:
+    file menu:
+        button: quit
+        button: load dataset
+    label: all done, load a new file if you wish to continue. Thanks!"
+    back button
+
+scenarios:
+    human hits back button
+        erase previous labels at index-1 in database, set index to index-1
+        initialize blank UI, display the previous image at index
+    load first dataset
+        load dataset:
+            create database if not exists otherwise use existing database
+            if database contains filename
+                get all data that has not been processed
+                if processed_data == 0
+                    go to end screen with message "already labeled. if your positive that this has not been labeled before, rename the file and try again"
+                else:
+                    display first result
+                    wait for human to process
+            else:
+                open image numpy array
+                create entries in database based on the index position of each image in the numpy array
+                display first result
+                wait for human to process
+
+    human hits a cell button:
+        get values of UI
+        enter into database at index, mark entry as processed
+        load new entry into UI at index+1
+        if no more remaining then display end screen
+        
+            
+database:
+    primary_key(file_name, index_in_array), cell_type, cutoff, more_than_one, obstructions, processed
+
+readme:
+
+description 2.0:
+    title
+    label of the current cell type
+    label: total number of each cell type
+    label: current page, total pages, number of cells processed/total cells
+    each page displays a 2d array of images from a single cell type
+    can click a button to switch to a different cell type
+    pagination: can click a button to go back and forth
+    maintain state of:
+        images in each page for each cell type even if labelled differently 
+        current page for each cell type
+       
+    re-sort button will save and restart the image labelling with images resorted, doesn't save position
+    save button will save state of cells but will not re-sort images
+    load new button loads data and re-sorts into pages
+
+scenarios:
+    click on image:
+        opens cell window 
+            with a cell image and 5 cell types, unsure and no cell
+            additional checkboxes with cutoff, more than one, obstructions
+            close button
+    select a button in cell window:
+        window closes
+        if modified cell type matches current cell type 
+            make label blank
+            modified_cells.remove(entry)
+        else:
+            display label with name of modified cell type in corner
+            cell_type.pages.selected_entry.info = selection.info
+            modified_cells.append(cell_type.pages.selected_entry)
+    select a new page
+        display_next_page
+        change stats
+    select previous page
+        display_previous_page
+        change stats
+    load data
+        if database exists
+            if data exists
+                display
+                    entries = read_data_from_db
+                    for cell_type in cell_types:
+                        for page in cell_type.pages:
+                            page.entries = entries_per_page
+                    display_current_cell_type
+                        display_current_page
+                    display stats at top of page
+            else:
+                displaynit_db_with_cells_and_type
+                display
+        else:
+            create_db
+            init_db_with_cells_and_type
+            display
+    save data
+        for entry in modified_cells:
+            save(entry)
+    re-sort data
+        display
+
+                
+
+
+     
+
