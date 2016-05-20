@@ -1,6 +1,5 @@
 import constants
 import numpy as np
-import os
 import sqlite3
 from entry import Entry
 import ntpath
@@ -10,7 +9,7 @@ class DB:
     def __init__(self, file_path):
         self.conn = sqlite3.connect('cells.db')
         self.idx = 0
-        self.training_images, self.file_name = load_data(file_path)
+        self.load_data(file_path)
         self.entries = []
         self.restart()
         self.create_table_if_not_exists()
@@ -39,8 +38,14 @@ class DB:
     def init_table(self):
         c = self.conn.cursor()
         data_entries = []
-        for i in range(self.training_images.shape[0]):
-            data_entries.append((self.file_name, i, None, None, None, None, 0))
+        for i in range(self.neutrophils.shape[0]):
+            data_entries.append((self.file_name, i+self.offset_neutro, constants.NEUTROPHIL, None, None, None, 0))
+        c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
+                        processed) VALUES(?,?,?,?,?,?,?)''', data_entries)
+        self.conn.commit()
+        data_entries = []
+        for i in range(self.monocytes.shape[0]):
+            data_entries.append((self.file_name, i+self.offset_mono, constants.MONOCYTE, None, None, None, 0))
         c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
                         processed) VALUES(?,?,?,?,?,?,?)''', data_entries)
         self.conn.commit()
@@ -122,14 +127,31 @@ class DB:
     def close_db(self):
         self.conn.close()
 
+    def get_entries(self):
+        self.entries = []
+        self.idx = 0
+        c = self.conn.cursor()
+        c.execute('''SELECT * FROM cells''')
+        rows = c.fetchall()
+        for row in rows:
+            self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+        return self.entries
 
-def load_data(file_path):
-    file_name = ntpath.basename(str(file_path))
-    #DATA_LOCATION = '../../AlanFine'
-    #FILE_NAME = 'monocytes_neutrophils.npz'
-    train_val = np.load(str(file_path))
-    # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
-    neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)[10:15, :, :, :]
-    monocytes = np.rollaxis(train_val['monocytes'], 1, 4)[10:15, :, :, :]
-    training_images = np.concatenate([neutrophils, monocytes])
-    return training_images, file_name
+    def get_currently_displayed_images(self, entries, offset):
+        images = np.zeros([len(entries), 81, 81, 3])
+        for i, entry in enumerate(entries):
+            images[i, :, :, :] = self.training_images[entry.index_in_array+offset, :, :, :]
+        return images
+
+    def load_data(self, file_path):
+        self.file_name = ntpath.basename(str(file_path))
+        #DATA_LOCATION = '../../AlanFine'
+        #FILE_NAME = 'monocytes_neutrophils.npz'
+        train_val = np.load(str(file_path))
+        # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
+        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[10:15, :, :, :]
+        self.offset_neutro = 0
+        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[10:15, :, :, :]
+        self.offset_mono = self.neutrophils.shape[0]
+        self.training_images = np.concatenate([self.neutrophils, self.monocytes])
+        #return neutrophils, monocytes, file_name
