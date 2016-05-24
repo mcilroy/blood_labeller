@@ -6,8 +6,10 @@ from mpl_canvas import StaticMplCanvas
 
 class MyPopup(QWidget):
 
-    def __init__(self, entry):
+    def __init__(self, entry, the_db):
         QWidget.__init__(self)
+        self.main_widget = QtGui.QWidget(self)
+        self.the_db = the_db
         self.display_cell_ui(entry)
 
     def display_cell_ui(self, entry):
@@ -63,11 +65,6 @@ class MyPopup(QWidget):
         hbox2.addWidget(self.button_no_cell)
         vbox.addLayout(hbox2)
         self.setLayout(vbox)
-
-    def paintEvent(self, e):
-        dc = QPainter(self)
-        dc.drawLine(0, 0, 100, 100)
-        dc.drawLine(100, 0, 0, 100)
 
     def button_neutrophil_clicked(self):
         cell_type = constants.NEUTROPHIL

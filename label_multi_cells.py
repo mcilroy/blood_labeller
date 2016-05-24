@@ -10,6 +10,9 @@ import constants
 from image_grid import StaticImageGridCanvas
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import math
+from label_single_cell import MyPopup
+import numpy as np
+
 
 class ApplicationWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -80,8 +83,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         hbox_label.addWidget(label)
         vbox.addLayout(hbox_label)
 
-        self.sc = StaticImageGridCanvas(int(math.ceil(float(images.shape[0])/7)), 7, self.main_widget)
-        self.sc.show_images(images)
+        #self.pop_up = MyPopup(self.entries[0], self.the_db)
+        #vbox.addWidget(self.pop_up)
+        self.sc = StaticImageGridCanvas(self, int(math.ceil(float(images.shape[0])/7)), 7, images, self.main_widget)
+        #self.sc.show_images(images)
         vbox.addWidget(self.sc)
 
         self.main_widget.setFocus()
@@ -95,8 +100,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.cur_pg = 0
         self.entries = self.the_db.get_entries()
         self.get_neutrophils()
-        images = self.set_current_entries()
+        self.cur_images = images = self.set_current_entries()
         self.display_cell_grid_ui(images)
+
+    def display_pop_up(self, image):
+        for x in xrange(self.cur_images.shape[0]):
+            if np.array_equal(self.cur_images[x, :, :, :], image):
+                print("display image")
+                self.pop_up = MyPopup(self.current_entries[x], self.the_db)
+                self.pop_up.show()
+                #vbox.addWidget(self.pop_up)
 
     def get_neutrophils(self):
         self.neutro = []
@@ -111,6 +124,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             return self.the_db.get_currently_displayed_images(self.current_entries, self.the_db.offset_neutro)
         else:
             return None
+
 qApp = QtGui.QApplication(sys.argv)
 
 aw = ApplicationWindow()

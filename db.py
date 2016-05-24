@@ -138,9 +138,10 @@ class DB:
         return self.entries
 
     def get_currently_displayed_images(self, entries, offset):
-        images = np.zeros([len(entries), 81, 81, 3])
+        images = np.zeros([len(entries), 81, 81, 3], dtype="uint8")
         for i, entry in enumerate(entries):
-            images[i, :, :, :] = self.training_images[entry.index_in_array+offset, :, :, :]
+            image = self.training_images[entry.index_in_array+offset, :, :, :]
+            images[i, :, :, :] = image
         return images
 
     def load_data(self, file_path):
