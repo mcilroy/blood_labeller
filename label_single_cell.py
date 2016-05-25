@@ -2,15 +2,18 @@ from PyQt4.Qt import *
 from PyQt4 import QtGui
 import constants
 from mpl_canvas import StaticMplCanvas
+from entry import Entry
 
 
 class MyPopup(QWidget):
 
-    def __init__(self, entry, the_db):
+    def __init__(self, main, entry, the_db):
         QWidget.__init__(self)
         self.main_widget = QtGui.QWidget(self)
         self.the_db = the_db
         self.display_cell_ui(entry)
+        self.main = main
+        self.entry = entry
 
     def display_cell_ui(self, entry):
         vbox = QtGui.QVBoxLayout(self.main_widget)
@@ -23,8 +26,14 @@ class MyPopup(QWidget):
 
         hbox1 = QtGui.QHBoxLayout()
         self.ckb_cut_off = QtGui.QCheckBox("Cut off")
+        if entry.cutoff:
+            self.ckb_cut_off.setChecked(True)
         self.ckb_more_than_one = QtGui.QCheckBox("More than one cell")
+        if entry.more_than_one:
+            self.ckb_more_than_one.setChecked(True)
         self.ckb_obstructions = QtGui.QCheckBox("Obstruction")
+        if entry.obstructions:
+            self.ckb_obstructions.setChecked(True)
         hbox1.addWidget(self.ckb_cut_off)
         hbox1.addWidget(self.ckb_more_than_one)
         hbox1.addWidget(self.ckb_obstructions)
@@ -96,6 +105,9 @@ class MyPopup(QWidget):
 
     def process_button_clicked(self, cell_type):
         sender = self.sender()
-        self.statusBar().showMessage('Previous action: ' + sender.text() + ' was pressed')
+        #self.statusBar().showMessage('Previous action: ' + sender.text() + ' was pressed')
+        self.main.modify_entry(Entry(self.entry.file_name, self.entry.index_in_array, cell_type, self.ckb_cut_off.isChecked(), self.ckb_more_than_one.isChecked(),
+                          self.ckb_obstructions.isChecked(), processed=True, modified=True))
         # self.the_db.save(cell_type, self.ckb_cut_off.isChecked(), self.ckb_more_than_one.isChecked(),
         #                  self.ckb_obstructions.isChecked(), processed=True)
+        self.close()

@@ -6,12 +6,13 @@ import ntpath
 
 
 class DB:
-    def __init__(self, file_path):
+    def __init__(self, file_path, restart=False):
         self.conn = sqlite3.connect('cells.db')
         self.idx = 0
         self.load_data(file_path)
         self.entries = []
-        self.restart()
+        if restart:
+            self.restart()
         self.create_table_if_not_exists()
         self.check_if_data_seen_before()
 
@@ -25,7 +26,7 @@ class DB:
         # Create table
         c.execute('''CREATE TABLE IF NOT EXISTS cells
                      (file_name TEXT, index_in_array INTEGER, cell_type TEXT, cut_off INTEGER, more_than_one INTEGER,
-                      obstructions INTEGER, processed INTEGER, PRIMARY KEY (file_name, index_in_array))''')
+                      obstructions INTEGER, processed INTEGER, modified INTEGER, PRIMARY KEY (file_name, index_in_array))''')
         self.conn.commit()
 
     def check_if_data_seen_before(self):
@@ -39,15 +40,15 @@ class DB:
         c = self.conn.cursor()
         data_entries = []
         for i in range(self.neutrophils.shape[0]):
-            data_entries.append((self.file_name, i+self.offset_neutro, constants.NEUTROPHIL, None, None, None, 0))
+            data_entries.append((self.file_name, i+self.offset_neutro, constants.NEUTROPHIL, None, None, None, 0, 0))
         c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
-                        processed) VALUES(?,?,?,?,?,?,?)''', data_entries)
+                        processed, modified) VALUES(?,?,?,?,?,?,?,?)''', data_entries)
         self.conn.commit()
         data_entries = []
         for i in range(self.monocytes.shape[0]):
-            data_entries.append((self.file_name, i+self.offset_mono, constants.MONOCYTE, None, None, None, 0))
+            data_entries.append((self.file_name, i+self.offset_mono, constants.MONOCYTE, None, None, None, 0, 0))
         c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
-                        processed) VALUES(?,?,?,?,?,?,?)''', data_entries)
+                        processed, modified) VALUES(?,?,?,?,?,?,?,?)''', data_entries)
         self.conn.commit()
 
     def get_unprocessed_entries(self):
@@ -101,12 +102,21 @@ class DB:
         self.idx -= 1
         return previous
 
-    def save(self, cell_type, cut_off, more_than_one, obstructions, processed):
+    def save(self, cell_type, cut_off, more_than_one, obstructions, processed, modified):
         c = self.conn.cursor()
         current_entry = self.entries[self.idx-1]
-        c.execute('''UPDATE cells SET cell_type=?, cut_off=?, more_than_one=?, obstructions=?, processed=?
+        c.execute('''UPDATE cells SET cell_type=?, cut_off=?, more_than_one=?, obstructions=?, processed=?, modified=?
             WHERE file_name=? AND index_in_array=?''', (cell_type, cut_off, more_than_one, obstructions, processed,
-                                                        self.file_name, current_entry.index_in_array))
+                                                        modified, self.file_name, current_entry.index_in_array))
+        self.conn.commit()
+
+    def save_entries(self, entries):
+        data_entries = []
+        for entry in entries:
+            data_entries.append((entry.cell_type, entry.cutoff, entry.more_than_one, entry.obstructions, entry.processed, entry.modified, entry.file_name, entry.index_in_array))
+        c = self.conn.cursor()
+        c.executemany('''UPDATE cells SET cell_type=?, cut_off=?, more_than_one=?, obstructions=?, processed=?, modified=?
+            WHERE file_name=? AND index_in_array=?''', data_entries)
         self.conn.commit()
 
     def unprocess_previous(self):
@@ -122,7 +132,7 @@ class DB:
         rows = c.fetchall()
         for row in rows:
             #self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
-            print(row[0], row[1], row[2], row[3], row[4], row[5], row[6])
+            print(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
 
     def close_db(self):
         self.conn.close()
@@ -134,13 +144,22 @@ class DB:
         c.execute('''SELECT * FROM cells''')
         rows = c.fetchall()
         for row in rows:
-            self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+            self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
         return self.entries
 
-    def get_currently_displayed_images(self, entries, offset):
+    def get_cell_types(self):
+        c = self.conn.cursor()
+        c.execute('''SELECT DISTINCT cell_type FROM cells''')
+        rows = c.fetchall()
+        names = []
+        for row in rows:
+            names.append(row[0])
+        return names
+
+    def get_currently_displayed_images(self, entries):
         images = np.zeros([len(entries), 81, 81, 3], dtype="uint8")
         for i, entry in enumerate(entries):
-            image = self.training_images[entry.index_in_array+offset, :, :, :]
+            image = self.training_images[entry.index_in_array, :, :, :]
             images[i, :, :, :] = image
         return images
 
