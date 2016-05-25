@@ -73,6 +73,10 @@ class ApplicationWindow(QtGui.QMainWindow):
              save.\n 6) Re-sort button re-sorts the re-labeled cells into their proper categories.''')
 
     def load_and_display_data(self):
+        self.load()
+        self.display_cell_grid_ui()
+
+    def load(self):
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
         self.the_db = db.DB(file_path, restart=True)
@@ -81,9 +85,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.num_pages = dict()
         self.cur_pg[constants.NEUTROPHIL] = 0
         self.cur_pg[constants.MONOCYTE] = 0
-        self.cell_per_pg = 3
-        self.rows = 1
-        self.cols = 3
+        self.cell_per_pg = 4
+        self.rows = 2
+        self.cols = 2
         assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
@@ -92,7 +96,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []
-        self.display_cell_grid_ui()
 
     def split_cells(self):
         self.neutros = []
@@ -151,6 +154,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         hbox.addItem(spacer)
         hbox.addWidget(self.btn_next)
         vbox.addLayout(hbox)
+
+        #pop_up = MyPopup(self, self.entries[0], self.the_db)
+        #vbox.addWidget(pop_up)
+
         btn_resort = QtGui.QPushButton("Re-sort")
         btn_resort.clicked.connect(self.btn_resort_clicked)
         btn_resort.setMaximumSize(150, 75)
@@ -166,31 +173,25 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def btn_neutrophils_clicked(self):
         self.cur_cell_type = constants.NEUTROPHIL
-        self.label_cell_type.setText("Current Cell Type: " + self.cur_cell_type)
-        self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
-        if self.cur_pg[self.cur_cell_type] == 0:
-            self.btn_previous.setVisible(False)
-        else:
-            self.btn_previous.setVisible(True)
-        if self.cur_pg[self.cur_cell_type]-1 == self.num_pages[self.cur_cell_type]:
-            self.btn_next.setVisible(False)
-        else:
-            self.btn_next.setVisible(True)
+        self.update_ui()
         self.change_cell_type()
 
     def btn_monocytes_clicked(self):
         self.cur_cell_type = constants.MONOCYTE
+        self.update_ui()
+        self.change_cell_type()
+
+    def update_ui(self):
         self.label_cell_type.setText("Current Cell Type: " + self.cur_cell_type)
         self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
-        if self.cur_pg[self.cur_cell_type] == 0:
+        if self.cur_pg[self.cur_cell_type] <= 0:
             self.btn_previous.setVisible(False)
         else:
             self.btn_previous.setVisible(True)
-        if self.cur_pg[self.cur_cell_type]-1 == self.num_pages[self.cur_cell_type]:
+        if self.cur_pg[self.cur_cell_type]-1 >= self.num_pages[self.cur_cell_type]:
             self.btn_next.setVisible(False)
         else:
             self.btn_next.setVisible(True)
-        self.change_cell_type()
 
     def change_cell_type(self):
         self.set_current_entries()
@@ -208,22 +209,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def btn_previous_clicked(self):
         self.cur_pg[self.cur_cell_type] -= 1
-        self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
-        if self.cur_pg[self.cur_cell_type] <= 0:
-            self.btn_previous.setVisible(False)
-        else:
-            self.btn_previous.setVisible(True)
-        self.btn_next.setVisible(True)
+        self.update_ui()
         self.change_cell_type()
 
     def btn_next_clicked(self):
         self.cur_pg[self.cur_cell_type] += 1
-        self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
-        if self.cur_pg[self.cur_cell_type]-1 >= self.num_pages[self.cur_cell_type]:
-            self.btn_next.setVisible(False)
-        else:
-            self.btn_next.setVisible(True)
-        self.btn_previous.setVisible(True)
+        self.update_ui()
         self.change_cell_type()
 
     def display_pop_up(self, image):
@@ -249,35 +240,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def btn_resort_clicked(self):
         self.btn_save_clicked()
-        #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
-        file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
-        self.the_db = db.DB(file_path, restart=False)
-        self.cur_cell_type = constants.NEUTROPHIL
-        self.cur_pg = dict()
-        self.num_pages = dict()
-        self.cur_pg[constants.NEUTROPHIL] = 0
-        self.cur_pg[constants.MONOCYTE] = 0
-        self.cell_per_pg = 3
-        self.rows = 1
-        self.cols = 3
-        assert(self.rows*self.cols == self.cell_per_pg)
-        self.entries = self.the_db.get_entries()
-        self.split_cells()
-        self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros)/self.cell_per_pg))
-        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.monos)/self.cell_per_pg))
-        self.set_current_entries()
-        self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
-        self.modified = []
-        self.label_cell_type.setText("Current Cell Type: " + self.cur_cell_type)
-        self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
-        if self.cur_pg[self.cur_cell_type] == 0:
-            self.btn_previous.setVisible(False)
-        else:
-            self.btn_previous.setVisible(True)
-        if self.cur_pg[self.cur_cell_type]-1 == self.num_pages[self.cur_cell_type]:
-            self.btn_next.setVisible(False)
-        else:
-            self.btn_next.setVisible(True)
+        self.load()
+        self.update_ui()
         self.change_cell_type()
 
 qApp = QtGui.QApplication(sys.argv)
