@@ -115,5 +115,5 @@ class MyPopup(QWidget):
         else:
             self.main.modify_entry(Entry(self.entry.file_name, self.entry.index_in_array, cell_type,
                                          self.ckb_cut_off.isChecked(), self.ckb_more_than_one.isChecked(),
-                                         self.ckb_obstructions.isChecked(), processed=True, modified=True))
+                                         self.ckb_obstructions.isChecked(), processed=False, modified=False))
             self.close()

@@ -8,11 +8,12 @@ from PyQt4 import QtGui, QtCore
 import db
 import constants
 from image_grid import MplCanvas
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import math
 from label_single_cell import MyPopup
 import numpy as np
 from image_grid import add_inner_title
+from entry import Entry
+
 
 class ApplicationWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -79,7 +80,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     def load(self):
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
-        self.the_db = db.DB(file_path, restart=True)
+        self.the_db = db.DB(file_path, restart=False)
         self.cur_cell_type = constants.NEUTROPHIL
         self.cur_pg = dict()
         self.num_pages = dict()
@@ -233,30 +234,26 @@ class ApplicationWindow(QtGui.QMainWindow):
     def modify_entry(self, entry):
         for i, an_entry in enumerate(self.current_entries):
             if an_entry.file_name == entry.file_name and an_entry.index_in_array == entry.index_in_array:  # find the entry in current entries
+                # make label blank
+                if len(self.sc.grid.axes_all[i].artists) > 0:
+                    self.sc.grid.axes_all[i].artists[0].txt._text._text = ""
+                else:
+                    t = add_inner_title(self.sc.grid.axes_all[i], "", loc=2)
+                    t.patch.set_ec("none")
+                    t.patch.set_alpha(0.5)
                 if an_entry.cell_type == entry.cell_type:  # did the cell_type stay the same?
-                    # set label blank
-                    if len(self.sc.grid.axes_all[i].artists) > 0:
-                        self.sc.grid.axes_all[i].artists[0].txt._text._text = ""
-                    else:
-                        t = add_inner_title(self.sc.grid.axes_all[i], "", loc=2)
-                        t.patch.set_ec("none")
-                        t.patch.set_alpha(0.5)
+                    # remove entry from modified list
                     try:
-                        self.modified.remove(entry)
+                        self.modified = [s for s in self.modified if not (s.file_name == entry.file_name and s.index_in_array == entry.index_in_array)]
+                        #self.modified.remove(entry)
                         self.current_modified_indexes.remove(i)
                     except ValueError:
                         pass
                 else:
-                    # set label to entry.cell_type
-                    if len(self.sc.grid.axes_all[i].artists) > 0:
-                        self.sc.grid.axes_all[i].artists[0].txt._text._text = entry.cell_type
-                    else:
-                        t = add_inner_title(self.sc.grid.axes_all[i], entry.cell_type, loc=2)
-                        t.patch.set_ec("none")
-                        t.patch.set_alpha(0.5)
+                    self.sc.grid.axes_all[i].artists[0].txt._text._text = entry.cell_type  # set label to modified cell type label
                     self.modified.append(entry)
                     self.current_modified_indexes.append(i)
-                self.sc.draw()
+        self.sc.draw()
 
     def btn_save_clicked(self):
         self.the_db.save_entries(self.modified)
@@ -268,8 +265,25 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.change_cell_type()
 
     def modify_bulk_entries(self, cell_type, cut_off, more_than_one, obstructions):
-        # get idx of all values clicked, add to modified, update the labels of images with cell_type
-        pass
+        for i, an_entry in enumerate(self.current_entries):
+            if len(self.sc.grid.axes_all[i].artists) > 0:
+                if self.sc.grid.axes_all[i].artists[0].txt._text._text == "*":
+                    # make label blank
+                    self.sc.grid.axes_all[i].artists[0].txt._text._text = ""
+                    if an_entry.cell_type == cell_type:  # did the cell_type stay the same?
+                        # remove entry from modified list because they are the same
+                        try:
+                            self.modified = [s for s in self.modified if not (s.file_name == an_entry.file_name and s.index_in_array == an_entry.index_in_array)]
+                            #self.modified.remove(an_entry)
+                            self.current_modified_indexes.remove(i)
+                        except ValueError:
+                            pass
+                    else:
+                        self.sc.grid.axes_all[i].artists[0].txt._text._text = cell_type  # set label to modified cell type label
+                        self.modified.append(Entry(an_entry.file_name, an_entry.index_in_array, cell_type,
+                                         cut_off, more_than_one, obstructions, processed=False, modified=False))
+                        self.current_modified_indexes.append(i)
+        self.sc.draw()
 
     def get_index_current_image(self, image):
         for x in xrange(self.cur_images.shape[0]):

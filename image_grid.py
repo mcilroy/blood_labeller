@@ -13,35 +13,19 @@ class MplCanvas(FigureCanvas):
         self.main = main
         self.rows = rows
         self.cols = cols
-        #self.images = images
-
-        fig = plt.figure()
-        self.grid = ImageGrid(fig, 111, nrows_ncols=(rows, cols), label_mode="1", axes_pad=0.1,)
-        self.axes = fig
-        # We want the axes cleared every time plot() is called
-        self.axes.hold(False)
-        FigureCanvas.__init__(self, fig)
-        #self.setMinimumSize(800, 700)
+        self.fig = plt.figure()
+        self.grid = ImageGrid(self.fig, 111, nrows_ncols=(rows, cols), label_mode="1", axes_pad=0.1,)
+        self.axes = self.fig
+        self.axes.hold(False)  # We want the axes cleared every time plot() is called
+        FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
         FigureCanvas.setSizePolicy(self,
                                    QtGui.QSizePolicy.Expanding,
                                    QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        fig.canvas.mpl_connect('pick_event', self.on_pick)
-        #self.show_images()
-        for ax in fig.axes:
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-        # for idx in modified_indexes:
-        #     if len(self.sc.grid.axes_all[idx].artists) > 0:
-        #         self.sc.grid.axes_all[idx].artists[0].txt._text._text = modified[idx].cell_type
-        #     else:
-        #         t = add_inner_title(self.sc.grid.axes_all[idx], "", loc=2)
-        #         t.patch.set_ec("none")
-        #         t.patch.set_alpha(0.5)
+        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
 
     def on_pick(self, event):
-        print("pick")
         modifiers = QtGui.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             mouseevent = event.mouseevent
@@ -81,6 +65,13 @@ class MplCanvas(FigureCanvas):
                 self.main.display_pop_up(im)
 
     def show_images(self):
+
+        self.grid = ImageGrid(self.fig, 111, nrows_ncols=(self.rows, self.cols), label_mode="1", axes_pad=0.1,)
+
+        for ax in self.fig.axes:
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+
         for x in xrange(self.rows):
             for y in xrange(self.cols):
                 if self.images.shape[0] > (x*self.cols)+y:
@@ -93,6 +84,10 @@ class MplCanvas(FigureCanvas):
         for ax in self.grid.axes_all:
             if len(ax.artists) > 0:
                 ax.artists[0].txt._text._text = ""
+            else:
+                t = add_inner_title(ax, "", loc=2)
+                t.patch.set_ec("none")
+                t.patch.set_alpha(0.5)
         for idx in current_modified_indexes:
             if len(self.grid.axes_all[idx].artists) > 0:
                 found = False
@@ -103,10 +98,6 @@ class MplCanvas(FigureCanvas):
                         break
                 if not found:
                     self.grid.axes_all[idx].artists[0].txt._text._text = current_entries[idx].cell_type
-            else:
-                t = add_inner_title(self.grid.axes_all[idx], "", loc=2)
-                t.patch.set_ec("none")
-                t.patch.set_alpha(0.5)
         self.draw()
 
     def deselect(self, current_entries, current_modified_indexes):
