@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import math
 from label_single_cell import MyPopup
 import numpy as np
-
+from image_grid import add_inner_title
 
 class ApplicationWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -96,6 +96,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []
+        self.current_modified_indexes = []
 
     def split_cells(self):
         self.neutros = []
@@ -140,23 +141,28 @@ class ApplicationWindow(QtGui.QMainWindow):
         vbox.addWidget(self.label_cell_type)
         self.label_cur_page = QtGui.QLabel("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
         vbox.addWidget(self.label_cur_page)
-        self.sc = MplCanvas(self, self.rows, self.cols, self.cur_images, self.main_widget)
+        self.sc = MplCanvas(self, self.rows, self.cols, self.main_widget)
+        self.sc.change_images(self.cur_images, self.current_entries, self.current_modified_indexes)
         vbox.addWidget(self.sc)
-        self.btn_previous = QtGui.QPushButton("Previous")
+        self.btn_previous = QtGui.QPushButton("Previous Pg.")
         self.btn_previous.clicked.connect(self.btn_previous_clicked)
         self.btn_previous.setMaximumSize(150, 75)
         self.btn_previous.setVisible(False)
-        self.btn_next = QtGui.QPushButton("Next")
+        self.btn_next = QtGui.QPushButton("Next Pg.")
         self.btn_next.clicked.connect(self.btn_next_clicked)
         self.btn_next.setMaximumSize(150, 75)
+        self.btn_deselect = QtGui.QPushButton("De-select")
+        self.btn_deselect.clicked.connect(self.btn_deselect_clicked)
+        self.btn_deselect.setMaximumSize(150, 75)
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(self.btn_previous)
         hbox.addItem(spacer)
         hbox.addWidget(self.btn_next)
         vbox.addLayout(hbox)
-
-        #pop_up = MyPopup(self, self.entries[0], self.the_db)
-        #vbox.addWidget(pop_up)
+        vbox.addWidget(self.btn_deselect)
+        vbox.addWidget(QtGui.QLabel("Bulk Change"))
+        pop_up = MyPopup(self, None, self.the_db)
+        vbox.addWidget(pop_up)
 
         btn_resort = QtGui.QPushButton("Re-sort")
         btn_resort.clicked.connect(self.btn_resort_clicked)
@@ -195,17 +201,14 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def change_cell_type(self):
         self.set_current_entries()
+        self.current_modified_indexes = []
+        for i, cur in enumerate(self.current_entries):
+            for mod in self.modified:
+                if cur.file_name == mod.file_name and cur.index_in_array == mod.index_in_array:
+                    self.current_modified_indexes.append(i)
+                    break
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
-        # find mplcanvas, remove it, remake it, then insert into UI
-        vbox = self.main_widget.findChild(QtGui.QVBoxLayout)
-        fc = self.main_widget.findChild(FigureCanvas)
-        fc.deleteLater()
-        try:
-            vbox.removeItem(fc)
-        except TypeError:
-            pass
-        self.sc = MplCanvas(self, self.rows, self.cols, self.cur_images, self.main_widget)
-        vbox.insertWidget(4, self.sc)
+        self.sc.change_images(self.cur_images, self.current_entries, self.current_modified_indexes)
 
     def btn_previous_clicked(self):
         self.cur_pg[self.cur_cell_type] -= 1
@@ -217,6 +220,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.update_ui()
         self.change_cell_type()
 
+    def btn_deselect_clicked(self):
+        self.sc.deselect(self.current_entries, self.current_modified_indexes)
+
     def display_pop_up(self, image):
         for x in xrange(self.cur_images.shape[0]):
             if np.array_equal(self.cur_images[x, :, :, :], image):
@@ -226,14 +232,31 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def modify_entry(self, entry):
         for i, an_entry in enumerate(self.current_entries):
-            if an_entry.file_name == entry.file_name and an_entry.index_in_array == entry.index_in_array:
-                if an_entry.cell_type == entry.cell_type:
+            if an_entry.file_name == entry.file_name and an_entry.index_in_array == entry.index_in_array:  # find the entry in current entries
+                if an_entry.cell_type == entry.cell_type:  # did the cell_type stay the same?
                     # set label blank
-                    self.modified.remove(entry)
+                    if len(self.sc.grid.axes_all[i].artists) > 0:
+                        self.sc.grid.axes_all[i].artists[0].txt._text._text = ""
+                    else:
+                        t = add_inner_title(self.sc.grid.axes_all[i], "", loc=2)
+                        t.patch.set_ec("none")
+                        t.patch.set_alpha(0.5)
+                    try:
+                        self.modified.remove(entry)
+                        self.current_modified_indexes.remove(i)
+                    except ValueError:
+                        pass
                 else:
                     # set label to entry.cell_type
-                    #self.current_entries[i] = entry
+                    if len(self.sc.grid.axes_all[i].artists) > 0:
+                        self.sc.grid.axes_all[i].artists[0].txt._text._text = entry.cell_type
+                    else:
+                        t = add_inner_title(self.sc.grid.axes_all[i], entry.cell_type, loc=2)
+                        t.patch.set_ec("none")
+                        t.patch.set_alpha(0.5)
                     self.modified.append(entry)
+                    self.current_modified_indexes.append(i)
+                self.sc.draw()
 
     def btn_save_clicked(self):
         self.the_db.save_entries(self.modified)
@@ -243,6 +266,15 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.load()
         self.update_ui()
         self.change_cell_type()
+
+    def modify_bulk_entries(self, cell_type, cut_off, more_than_one, obstructions):
+        # get idx of all values clicked, add to modified, update the labels of images with cell_type
+        pass
+
+    def get_index_current_image(self, image):
+        for x in xrange(self.cur_images.shape[0]):
+            if np.array_equal(self.cur_images[x, :, :, :], image):
+                return x
 
 qApp = QtGui.QApplication(sys.argv)
 
