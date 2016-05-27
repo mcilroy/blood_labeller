@@ -31,12 +31,15 @@ class MyPopup(QWidget):
 
         hbox1 = QtGui.QHBoxLayout()
         self.ckb_cut_off = QtGui.QCheckBox("Cut off")
+        self.ckb_cut_off.setEnabled(False)
         if not self.bulk_add and entry.cutoff:
             self.ckb_cut_off.setChecked(True)
         self.ckb_more_than_one = QtGui.QCheckBox("More than one cell")
+        self.ckb_more_than_one.setEnabled(False)
         if not self.bulk_add and entry.more_than_one:
             self.ckb_more_than_one.setChecked(True)
         self.ckb_obstructions = QtGui.QCheckBox("Obstruction")
+        self.ckb_obstructions.setEnabled(False)
         if not self.bulk_add and entry.obstructions:
             self.ckb_obstructions.setChecked(True)
         hbox1.addWidget(self.ckb_cut_off)

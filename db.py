@@ -169,9 +169,9 @@ class DB:
         #FILE_NAME = 'monocytes_neutrophils.npz'
         train_val = np.load(str(file_path))
         # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
-        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[10:15, :, :, :]
+        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[0:101, :, :, :]
         self.offset_neutro = 0
-        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[10:15, :, :, :]
+        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[0:101, :, :, :]
         self.offset_mono = self.neutrophils.shape[0]
         self.training_images = np.concatenate([self.neutrophils, self.monocytes])
         #return neutrophils, monocytes, file_name

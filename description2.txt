@@ -81,7 +81,7 @@ scenarios:
             close button
     select a button in cell window:
         window closes
-        if modified cell type matches current cell type 
+        if modified cell type matches current cell type and cut_off, more_than_one, obstructions = current cell:
             make label blank
             modified_cells.remove(entry)
         else:

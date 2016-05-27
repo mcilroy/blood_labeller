@@ -1,5 +1,10 @@
 bug:
-    self.idx is not the index_in_array
+    -self.idx is not the index_in_array
+    -displays extra pages at the end
+feature:
+    select all button
+optimization:
+    slowdown from picking seems to be a combination of looking at each pickable axes (image) and drawing all images. Not sure if there is a way to speed it up frankly.
 check:
     is self.idx being properly set? 
     can my program handle filling out a dataset half way and then reloading?
@@ -9,3 +14,4 @@ check:
 
 questions:
     should the labeller allow people to label more than one cell?
+

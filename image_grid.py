@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.image import AxesImage
 import numpy as np
+import sys
 
 
 class MplCanvas(FigureCanvas):
@@ -26,6 +27,7 @@ class MplCanvas(FigureCanvas):
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
 
     def on_pick(self, event):
+        print("pick event")
         modifiers = QtGui.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             mouseevent = event.mouseevent
@@ -64,20 +66,6 @@ class MplCanvas(FigureCanvas):
                 im = a.get_array()
                 self.main.display_pop_up(im)
 
-    def show_images(self):
-
-        self.grid = ImageGrid(self.fig, 111, nrows_ncols=(self.rows, self.cols), label_mode="1", axes_pad=0.1,)
-
-        for ax in self.fig.axes:
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-
-        for x in xrange(self.rows):
-            for y in xrange(self.cols):
-                if self.images.shape[0] > (x*self.cols)+y:
-                    img = self.images[(x*self.cols)+y, :, :, :]
-                    self.grid[(x*self.cols)+y].imshow(img, picker=True)
-
     def change_images(self, images, current_entries, current_modified_indexes):
         self.images = images
         self.show_images()
@@ -100,6 +88,26 @@ class MplCanvas(FigureCanvas):
                     self.grid.axes_all[idx].artists[0].txt._text._text = current_entries[idx].cell_type
         self.draw()
 
+    def show_images(self):
+        print("self.fig.axes", sys.getsizeof(self.fig.axes))
+        print("self.fig", sys.getsizeof(self.fig))
+        print("self.grid", sys.getsizeof(self.grid))
+        #while len(self.fig.axes) > 0:
+        #    self.fig.axes.pop(0)
+        #self.grid = ImageGrid(self.fig, 111, nrows_ncols=(self.rows, self.cols), label_mode="1", axes_pad=0.1,)
+        for ax in self.fig.axes:
+            if len(ax.artists) > 0:
+                ax.artists = []
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+        for ax in self.grid.axes_all:
+            ax.images = []
+        for x in xrange(self.rows):
+            for y in xrange(self.cols):
+                if self.images.shape[0] > (x*self.cols)+y:
+                    img = self.images[(x*self.cols)+y, :, :, :]
+                    self.grid[(x*self.cols)+y].imshow(img, picker=True)
+
     def deselect(self, current_entries, current_modified_indexes):
         for i, ax in enumerate(self.grid.axes_all):
             if len(ax.artists) > 0:
@@ -117,12 +125,22 @@ class MplCanvas(FigureCanvas):
                         ax.artists[0].txt._text._text = ""
         self.draw()
 
+    def select_all(self, current_entries, current_modified_indexes):
+        for i, ax in enumerate(self.grid.axes_all):
+            if len(ax.artists) > 0:
+                ax.artists[0].txt._text._text = "*"
+            else:
+                t = add_inner_title(ax, "*", loc=2)
+                t.patch.set_ec("none")
+                t.patch.set_alpha(0.5)
+        self.draw()
 
 def add_inner_title(ax, title, loc, size=None, **kwargs):
     from matplotlib.offsetbox import AnchoredText
     from matplotlib.patheffects import withStroke
     if size is None:
         size = dict(size=plt.rcParams['legend.fontsize'])
+        #size = dict(size=24)
     at = AnchoredText(title, loc=loc, prop=size,
                       pad=0., borderpad=0.5,
                       frameon=False, **kwargs)

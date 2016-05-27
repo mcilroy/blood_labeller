@@ -2,7 +2,7 @@
 
 # simple program to help experts label blood cells and store in a sqlite3 database
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, division
 import sys
 from PyQt4 import QtGui, QtCore
 import db
@@ -86,9 +86,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.num_pages = dict()
         self.cur_pg[constants.NEUTROPHIL] = 0
         self.cur_pg[constants.MONOCYTE] = 0
-        self.cell_per_pg = 4
-        self.rows = 2
-        self.cols = 2
+        self.cell_per_pg = 25
+        self.rows = 5
+        self.cols = 5
         assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
@@ -148,19 +148,25 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.btn_previous = QtGui.QPushButton("Previous Pg.")
         self.btn_previous.clicked.connect(self.btn_previous_clicked)
         self.btn_previous.setMaximumSize(150, 75)
-        self.btn_previous.setVisible(False)
+        self.btn_previous.setEnabled(False)
         self.btn_next = QtGui.QPushButton("Next Pg.")
         self.btn_next.clicked.connect(self.btn_next_clicked)
         self.btn_next.setMaximumSize(150, 75)
         self.btn_deselect = QtGui.QPushButton("De-select")
         self.btn_deselect.clicked.connect(self.btn_deselect_clicked)
         self.btn_deselect.setMaximumSize(150, 75)
+        self.btn_select_all = QtGui.QPushButton("Select All")
+        self.btn_select_all.clicked.connect(self.btn_select_all_clicked)
+        self.btn_select_all.setMaximumSize(150, 75)
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(self.btn_previous)
         hbox.addItem(spacer)
         hbox.addWidget(self.btn_next)
         vbox.addLayout(hbox)
-        vbox.addWidget(self.btn_deselect)
+        hbox = QtGui.QHBoxLayout()
+        hbox.addWidget(self.btn_deselect)
+        hbox.addWidget(self.btn_select_all)
+        vbox.addLayout(hbox)
         vbox.addWidget(QtGui.QLabel("Bulk Change"))
         pop_up = MyPopup(self, None, self.the_db)
         vbox.addWidget(pop_up)
@@ -192,13 +198,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.label_cell_type.setText("Current Cell Type: " + self.cur_cell_type)
         self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
         if self.cur_pg[self.cur_cell_type] <= 0:
-            self.btn_previous.setVisible(False)
+            self.btn_previous.setEnabled(False)
         else:
-            self.btn_previous.setVisible(True)
-        if self.cur_pg[self.cur_cell_type]-1 >= self.num_pages[self.cur_cell_type]:
-            self.btn_next.setVisible(False)
+            self.btn_previous.setEnabled(True)
+        if self.cur_pg[self.cur_cell_type]+1 >= self.num_pages[self.cur_cell_type]:
+            self.btn_next.setEnabled(False)
         else:
-            self.btn_next.setVisible(True)
+            self.btn_next.setEnabled(True)
 
     def change_cell_type(self):
         self.set_current_entries()
@@ -223,6 +229,9 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def btn_deselect_clicked(self):
         self.sc.deselect(self.current_entries, self.current_modified_indexes)
+
+    def btn_select_all_clicked(self):
+        self.sc.select_all(self.current_entries, self.current_modified_indexes)
 
     def display_pop_up(self, image):
         for x in xrange(self.cur_images.shape[0]):
