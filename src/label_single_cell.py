@@ -1,8 +1,10 @@
-from PyQt4.Qt import *
 from PyQt4 import QtGui
+
+from PyQt4.Qt import *
+
 import constants
-from mpl_canvas import StaticMplCanvas
 from entry import Entry
+from mpl_canvas import StaticMplCanvas
 
 
 class MyPopup(QWidget):

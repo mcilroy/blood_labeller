@@ -3,16 +3,17 @@
 # simple program to help experts label blood cells and store in a sqlite3 database
 
 from __future__ import unicode_literals, division
+
+import math
+import numpy as np
 import sys
 from PyQt4 import QtGui, QtCore
-import db
+
 import constants
-from image_grid import MplCanvas
-import math
-from label_single_cell import MyPopup
-import numpy as np
-from image_grid import add_inner_title
+import db
 from entry import Entry
+from image_grid import MplCanvas, add_inner_title
+from label_single_cell import MyPopup
 
 
 class ApplicationWindow(QtGui.QMainWindow):
@@ -101,13 +102,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
-        self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros)/self.cell_per_pg))
-        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.mono)/self.cell_per_pg))
-        self.num_pages[constants.LYMPHOCYTE] = int(math.ceil(len(self.lymph)/self.cell_per_pg))
-        self.num_pages[constants.EOSINOPHIL] = int(math.ceil(len(self.eosin)/self.cell_per_pg))
-        self.num_pages[constants.BASOPHIL] = int(math.ceil(len(self.baso)/self.cell_per_pg))
-        self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell)/self.cell_per_pg))
-        self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure)/self.cell_per_pg))
+        self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros) / self.cell_per_pg))
+        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.mono) / self.cell_per_pg))
+        self.num_pages[constants.LYMPHOCYTE] = int(math.ceil(len(self.lymph) / self.cell_per_pg))
+        self.num_pages[constants.EOSINOPHIL] = int(math.ceil(len(self.eosin) / self.cell_per_pg))
+        self.num_pages[constants.BASOPHIL] = int(math.ceil(len(self.baso) / self.cell_per_pg))
+        self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell) / self.cell_per_pg))
+        self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure) / self.cell_per_pg))
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []

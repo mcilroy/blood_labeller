@@ -1,7 +1,8 @@
-import db
-import os
 import numpy as np
+import os
+
 import constants
+import db
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
             count_monocytes += 1
     monocytes = monocytes[0:count_monocytes, :, :, :]
 
-    np.savez(FILE_NAME+"_cleaned", neutrophils=neutrophils, monocytes=monocytes)
+    np.savez("data/"+FILE_NAME+"_cleaned", neutrophils=neutrophils, monocytes=monocytes)
 
 
 main()

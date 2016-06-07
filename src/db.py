@@ -1,13 +1,14 @@
-import constants
+import ntpath
 import numpy as np
 import sqlite3
+
+import constants
 from entry import Entry
-import ntpath
 
 
 class DB:
     def __init__(self, file_path, restart=False):
-        self.conn = sqlite3.connect('cells.db')
+        self.conn = sqlite3.connect('data/cells.db')
         self.idx = 0
         self.load_data(file_path)
         self.entries = []
