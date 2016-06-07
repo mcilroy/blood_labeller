@@ -37,16 +37,16 @@ class DB:
             self.init_table()
 
     def init_table(self):
+        self.init_row(self.neutrophils.shape[0], self.offset_neutro, constants.NEUTROPHIL)
+        self.init_row(self.monocytes.shape[0], self.offset_mono, constants.MONOCYTE)
+        self.init_row(self.eosinophils.shape[0], self.offset_eosinophils, constants.EOSINOPHIL)
+        self.init_row(self.basophils.shape[0], self.offset_basophils, constants.BASOPHIL)
+
+    def init_row(self, cell_length, offset, cell_type):
         c = self.conn.cursor()
         data_entries = []
-        for i in range(self.neutrophils.shape[0]):
-            data_entries.append((self.file_name, i+self.offset_neutro, constants.NEUTROPHIL, None, None, None, 0, 0))
-        c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
-                        processed, modified) VALUES(?,?,?,?,?,?,?,?)''', data_entries)
-        self.conn.commit()
-        data_entries = []
-        for i in range(self.monocytes.shape[0]):
-            data_entries.append((self.file_name, i+self.offset_mono, constants.MONOCYTE, None, None, None, 0, 0))
+        for i in range(cell_length):
+            data_entries.append((self.file_name, i+offset, cell_type, None, None, None, 0, 0))
         c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
                         processed, modified) VALUES(?,?,?,?,?,?,?,?)''', data_entries)
         self.conn.commit()
@@ -169,9 +169,13 @@ class DB:
         #FILE_NAME = 'monocytes_neutrophils.npz'
         train_val = np.load(str(file_path))
         # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
-        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[0:101, :, :, :]
         self.offset_neutro = 0
-        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[0:101, :, :, :]
+        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[0:101, :, :, :]
         self.offset_mono = self.neutrophils.shape[0]
-        self.training_images = np.concatenate([self.neutrophils, self.monocytes])
+        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[0:101, :, :, :]
+        self.offset_basophils = self.neutrophils.shape[0] + self.monocytes.shape[0]
+        self.basophils = np.rollaxis(train_val['basophils'], 1, 4)
+        self.offset_eosinophils = self.neutrophils.shape[0] + self.monocytes.shape[0] + self.basophils.shape[0]
+        self.eosinophils = np.rollaxis(train_val['eosinophils'], 1, 4)
+        self.training_images = np.concatenate([self.neutrophils, self.monocytes, self.basophils, self.eosinophils])
         #return neutrophils, monocytes, file_name

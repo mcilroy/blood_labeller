@@ -21,7 +21,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         # General layout and window
         self.setStyleSheet('font-size: 16pt; font-family: Courier;')
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("Label Cells 0.2")
+        self.setWindowTitle("Label Cells 0.3")
         self.setMinimumSize((150*6)+50, 840)
         self.file_menu = QtGui.QMenu('&File', self)
         self.file_menu.addAction('&Load Data', self.load_and_display_data,
@@ -78,22 +78,36 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.display_cell_grid_ui()
 
     def load(self):
+        self.file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '.')
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
-        file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
-        self.the_db = db.DB(file_path, restart=False)
+        #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
+        self.the_db = db.DB(self.file_path, restart=False)
+        self.initialize()
+
+    def initialize(self):
         self.cur_cell_type = constants.NEUTROPHIL
         self.cur_pg = dict()
         self.num_pages = dict()
         self.cur_pg[constants.NEUTROPHIL] = 0
+        self.cur_pg[constants.LYMPHOCYTE] = 0
         self.cur_pg[constants.MONOCYTE] = 0
-        self.cell_per_pg = 25
+        self.cur_pg[constants.EOSINOPHIL] = 0
+        self.cur_pg[constants.BASOPHIL] = 0
+        self.cur_pg[constants.NO_CELL] = 0
+        self.cur_pg[constants.NOT_SURE] = 0
+        self.cell_per_pg = 50
         self.rows = 5
-        self.cols = 5
+        self.cols = 10
         assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
         self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros)/self.cell_per_pg))
-        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.monos)/self.cell_per_pg))
+        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.mono)/self.cell_per_pg))
+        self.num_pages[constants.LYMPHOCYTE] = int(math.ceil(len(self.lymph)/self.cell_per_pg))
+        self.num_pages[constants.EOSINOPHIL] = int(math.ceil(len(self.eosin)/self.cell_per_pg))
+        self.num_pages[constants.BASOPHIL] = int(math.ceil(len(self.baso)/self.cell_per_pg))
+        self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell)/self.cell_per_pg))
+        self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure)/self.cell_per_pg))
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []
@@ -101,18 +115,43 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def split_cells(self):
         self.neutros = []
-        self.monos = []
+        self.lymph = []
+        self.mono = []
+        self.eosin = []
+        self.baso = []
+        self.unsure = []
+        self.no_cell = []
         for entry in self.entries:
             if entry.cell_type == constants.NEUTROPHIL:
                 self.neutros.append(entry)
             elif entry.cell_type == constants.MONOCYTE:
-                self.monos.append(entry)
+                self.mono.append(entry)
+            elif entry.cell_type == constants.LYMPHOCYTE:
+                self.lymph.append(entry)
+            elif entry.cell_type == constants.EOSINOPHIL:
+                self.eosin.append(entry)
+            elif entry.cell_type == constants.BASOPHIL:
+                self.baso.append(entry)
+            elif entry.cell_type == constants.NO_CELL:
+                self.no_cell.append(entry)
+            elif entry.cell_type == constants.NOT_SURE:
+                self.unsure.append(entry)
 
     def set_current_entries(self):
         if self.cur_cell_type == constants.NEUTROPHIL:
             blah = self.neutros
         elif self.cur_cell_type == constants.MONOCYTE:
-            blah = self.monos
+            blah = self.mono
+        elif self.cur_cell_type == constants.LYMPHOCYTE:
+            blah = self.lymph
+        elif self.cur_cell_type == constants.BASOPHIL:
+            blah = self.baso
+        elif self.cur_cell_type == constants.NOT_SURE:
+            blah = self.unsure
+        elif self.cur_cell_type == constants.NO_CELL:
+            blah = self.no_cell
+        elif self.cur_cell_type == constants.EOSINOPHIL:
+            blah = self.eosin
         if self.cur_pg[self.cur_cell_type] > len(blah)/self.cell_per_pg:
             return []
         if (self.cur_pg[self.cur_cell_type]+1) * self.cell_per_pg > len(blah):
@@ -129,20 +168,50 @@ class ApplicationWindow(QtGui.QMainWindow):
         btn_neutrophils = QtGui.QPushButton("Neutrophils")
         btn_neutrophils.clicked.connect(self.btn_neutrophils_clicked)
         btn_neutrophils.setMaximumSize(150, 75)
+        btn_lymphocyte = QtGui.QPushButton("Lymphocyte")
+        btn_lymphocyte.clicked.connect(self.btn_lymphocyte_clicked)
+        btn_lymphocyte.setMaximumSize(150, 75)
         btn_monocytes = QtGui.QPushButton("Monocytes")
         btn_monocytes.clicked.connect(self.btn_monocytes_clicked)
         btn_monocytes.setMaximumSize(150, 75)
+        btn_eosinophil = QtGui.QPushButton("Eosinophil")
+        btn_eosinophil.clicked.connect(self.btn_eosinophil_clicked)
+        btn_eosinophil.setMaximumSize(150, 75)
+        btn_basophil = QtGui.QPushButton("Basophil")
+        btn_basophil.clicked.connect(self.btn_basophil_clicked)
+        btn_basophil.setMaximumSize(150, 75)
+        btn_unsure = QtGui.QPushButton("Unsure")
+        btn_unsure.clicked.connect(self.btn_unsure_clicked)
+        btn_unsure.setMaximumSize(150, 75)
+        btn_nocell = QtGui.QPushButton("No cell")
+        btn_nocell.clicked.connect(self.btn_nocell_clicked)
+        btn_nocell.setMaximumSize(150, 75)
         spacer = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(btn_neutrophils)
         hbox.addItem(spacer)
+        hbox.addWidget(btn_lymphocyte)
+        hbox.addItem(spacer)
         hbox.addWidget(btn_monocytes)
         vbox.addLayout(hbox)
+        hbox = QtGui.QHBoxLayout()
+        hbox.addItem(spacer)
+        hbox.addWidget(btn_eosinophil)
+        hbox.addItem(spacer)
+        hbox.addWidget(btn_basophil)
+        hbox.addItem(spacer)
+        hbox.addWidget(btn_unsure)
+        hbox.addItem(spacer)
+        hbox.addWidget(btn_nocell)
+        vbox.addLayout(hbox)
         self.label_cell_type = QtGui.QLabel("Current Cell Type: " + self.cur_cell_type)
+        self.label_cell_type.setStyleSheet('font-size: 18pt; font-weight: bold;')
         vbox.addWidget(self.label_cell_type)
         self.label_cur_page = QtGui.QLabel("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
+        self.label_cur_page.setStyleSheet('font-size: 16pt; font-weight: bold;')
         vbox.addWidget(self.label_cur_page)
         self.sc = MplCanvas(self, self.rows, self.cols, self.main_widget)
+        #self.sc.setMinimumSize(500, 400)
         self.sc.change_images(self.cur_images, self.current_entries, self.current_modified_indexes)
         vbox.addWidget(self.sc)
         self.btn_previous = QtGui.QPushButton("Previous Pg.")
@@ -189,8 +258,33 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.update_ui()
         self.change_cell_type()
 
+    def btn_lymphocyte_clicked(self):
+        self.cur_cell_type = constants.LYMPHOCYTE
+        self.update_ui()
+        self.change_cell_type()
+
     def btn_monocytes_clicked(self):
         self.cur_cell_type = constants.MONOCYTE
+        self.update_ui()
+        self.change_cell_type()
+
+    def btn_eosinophil_clicked(self):
+        self.cur_cell_type = constants.EOSINOPHIL
+        self.update_ui()
+        self.change_cell_type()
+
+    def btn_basophil_clicked(self):
+        self.cur_cell_type = constants.BASOPHIL
+        self.update_ui()
+        self.change_cell_type()
+
+    def btn_unsure_clicked(self):
+        self.cur_cell_type = constants.NOT_SURE
+        self.update_ui()
+        self.change_cell_type()
+
+    def btn_nocell_clicked(self):
+        self.cur_cell_type = constants.NO_CELL
         self.update_ui()
         self.change_cell_type()
 
@@ -269,7 +363,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def btn_resort_clicked(self):
         self.btn_save_clicked()
-        self.load()
+        self.initialize()
         self.update_ui()
         self.change_cell_type()
 

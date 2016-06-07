@@ -53,31 +53,37 @@ class MyPopup(QWidget):
 
         hbox2 = QtGui.QHBoxLayout()
         self.button_neutrophil = QtGui.QPushButton("Neutrophil")
-        self.button_neutrophil.setMinimumSize(150, 75)
+        self.button_neutrophil.setMinimumSize(135, 60)
         self.button_neutrophil.clicked.connect(self.button_neutrophil_clicked)
         hbox2.addWidget(self.button_neutrophil)
 
+        self.button_lymphocyte = QtGui.QPushButton("Lymphocyte")
+        self.button_lymphocyte.setMinimumSize(135, 60)
+        self.button_lymphocyte.clicked.connect(self.button_lymphocyte_clicked)
+        hbox2.addWidget(self.button_lymphocyte)
+
         self.button_monocyte = QtGui.QPushButton("Monocyte")
-        self.button_monocyte.setMinimumSize(150, 75)
+        self.button_monocyte.setMinimumSize(135, 60)
         self.button_monocyte.clicked.connect(self.button_monocyte_clicked)
         hbox2.addWidget(self.button_monocyte)
 
         self.button_eosinophil = QtGui.QPushButton("Eosinophil")
-        self.button_eosinophil.setMinimumSize(150, 75)
+        self.button_eosinophil.setMinimumSize(135, 60)
         self.button_eosinophil.clicked.connect(self.button_eosinophil_clicked)
         hbox2.addWidget(self.button_eosinophil)
 
         self.button_basophil = QtGui.QPushButton("Basophil")
-        self.button_basophil.setMinimumSize(150, 75)
+        self.button_basophil.setMinimumSize(135, 60)
         self.button_basophil.clicked.connect(self.button_basophil_clicked)
         hbox2.addWidget(self.button_basophil)
 
         self.button_not_sure = QtGui.QPushButton("Not Sure")
-        self.button_not_sure.setMinimumSize(150, 75)
+        self.button_not_sure.setMinimumSize(135, 60)
         self.button_not_sure.clicked.connect(self.button_not_sure_clicked)
         hbox2.addWidget(self.button_not_sure)
+
         self.button_no_cell = QtGui.QPushButton("No Cell")
-        self.button_no_cell.setMinimumSize(150, 75)
+        self.button_no_cell.setMinimumSize(135, 60)
         self.button_no_cell.clicked.connect(self.button_no_cell_clicked)
         hbox2.addWidget(self.button_no_cell)
         vbox.addLayout(hbox2)
@@ -85,6 +91,10 @@ class MyPopup(QWidget):
 
     def button_neutrophil_clicked(self):
         cell_type = constants.NEUTROPHIL
+        self.process_button_clicked(cell_type)
+
+    def button_lymphocyte_clicked(self):
+        cell_type = constants.LYMPHOCYTE
         self.process_button_clicked(cell_type)
 
     def button_monocyte_clicked(self):
@@ -97,10 +107,6 @@ class MyPopup(QWidget):
 
     def button_basophil_clicked(self):
         cell_type = constants.BASOPHIL
-        self.process_button_clicked(cell_type)
-
-    def button_lymphocyte_clicked(self):
-        cell_type = constants.LYMPHOCYTE
         self.process_button_clicked(cell_type)
 
     def button_not_sure_clicked(self):

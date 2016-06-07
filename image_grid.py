@@ -27,11 +27,12 @@ class MplCanvas(FigureCanvas):
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
 
     def on_pick(self, event):
-        print("pick event")
+        #print("pick event")
         modifiers = QtGui.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             mouseevent = event.mouseevent
             ax = mouseevent.inaxes
+            #print(len(ax.artists))
             if len(ax.artists) > 0:
                 if ax.artists[0].txt._text._text == "":
                     ax.artists[0].txt._text._text = "*"
@@ -89,9 +90,9 @@ class MplCanvas(FigureCanvas):
         self.draw()
 
     def show_images(self):
-        print("self.fig.axes", sys.getsizeof(self.fig.axes))
-        print("self.fig", sys.getsizeof(self.fig))
-        print("self.grid", sys.getsizeof(self.grid))
+        #print("self.fig.axes", sys.getsizeof(self.fig.axes))
+        #print("self.fig", sys.getsizeof(self.fig))
+        #print("self.grid", sys.getsizeof(self.grid))
         #while len(self.fig.axes) > 0:
         #    self.fig.axes.pop(0)
         #self.grid = ImageGrid(self.fig, 111, nrows_ncols=(self.rows, self.cols), label_mode="1", axes_pad=0.1,)
@@ -134,6 +135,7 @@ class MplCanvas(FigureCanvas):
                 t.patch.set_ec("none")
                 t.patch.set_alpha(0.5)
         self.draw()
+
 
 def add_inner_title(ax, title, loc, size=None, **kwargs):
     from matplotlib.offsetbox import AnchoredText
