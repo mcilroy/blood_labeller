@@ -1,10 +1,8 @@
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt4 import QtGui, QtCore
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from PyQt5 import QtWidgets, QtCore
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.image import AxesImage
-import numpy as np
-import sys
 
 
 class MplCanvas(FigureCanvas):
@@ -21,14 +19,15 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
         FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
+                                   QtWidgets.QSizePolicy.Expanding,
+                                   QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
+        plt.tight_layout()
 
     def on_pick(self, event):
         #print("pick event")
-        modifiers = QtGui.QApplication.keyboardModifiers()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             mouseevent = event.mouseevent
             ax = mouseevent.inaxes
@@ -88,6 +87,7 @@ class MplCanvas(FigureCanvas):
                 if not found:
                     self.grid.axes_all[idx].artists[0].txt._text._text = current_entries[idx].cell_type
         self.draw()
+        plt.tight_layout()
 
     def show_images(self):
         #print("self.fig.axes", sys.getsizeof(self.fig.axes))

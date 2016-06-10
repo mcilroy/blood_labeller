@@ -1,6 +1,7 @@
 import ntpath
-import numpy as np
 import sqlite3
+
+import numpy as np
 
 import constants
 from entry import Entry

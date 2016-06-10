@@ -5,9 +5,10 @@
 from __future__ import unicode_literals, division
 
 import math
-import numpy as np
 import sys
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtWidgets
+
+import numpy as np
 
 import constants
 import db
@@ -16,22 +17,22 @@ from image_grid import MplCanvas, add_inner_title
 from label_single_cell import MyPopup
 
 
-class ApplicationWindow(QtGui.QMainWindow):
+class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         # General layout and window
         self.setStyleSheet('font-size: 16pt; font-family: Courier;')
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("Label Cells 0.3")
         self.setMinimumSize((150*6)+50, 840)
-        self.file_menu = QtGui.QMenu('&File', self)
+        self.file_menu = QtWidgets.QMenu('&File', self)
         self.file_menu.addAction('&Load Data', self.load_and_display_data,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_L)
         self.file_menu.addAction('&Quit', self.file_quit,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
 
-        self.help_menu = QtGui.QMenu('&Help', self)
+        self.help_menu = QtWidgets.QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('&Documentation', self.about)
@@ -48,16 +49,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.unsure = []
         self.no_cell = []
         self.pop_up = None
-        self.display_opening_menu('Welcome. To load data go to : Options -> Load Data')
+        self.display_opening_menu('Welcome. To load data go to : File -> Load Data')
 
     def display_opening_menu(self, instructions):
-        self.main_widget = QtGui.QWidget(self)
-        label = QtGui.QLabel(instructions)
+        self.main_widget = QtWidgets.QWidget(self)
+        label = QtWidgets.QLabel(instructions)
         label.setAlignment(QtCore.Qt.AlignCenter)
         label.setWordWrap(True)
-        vbox = QtGui.QVBoxLayout(self.main_widget)
+        vbox = QtWidgets.QVBoxLayout(self.main_widget)
 
-        hbox = QtGui.QVBoxLayout()
+        hbox = QtWidgets.QVBoxLayout()
         hbox.addWidget(label)
         vbox.addLayout(hbox)
         self.main_widget.setFocus()
@@ -70,7 +71,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.file_quit()
 
     def about(self):
-        QtGui.QMessageBox.about(self, "Documentation", '''0) Load Data from File Menu.\n 1) Select a cell to re-label.
+        QtWidgets.QMessageBox.about(self, "Documentation", '''0) Load Data from File Menu.\n 1) Select a cell to re-label.
         \n 2) label cell.\n 3) move between pages.\n 4) select different cell types to display them\n 5) Click Save to
              save.\n 6) Re-sort button re-sorts the re-labeled cells into their proper categories.''')
 
@@ -79,7 +80,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.display_cell_grid_ui()
 
     def load(self):
-        self.file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '.')
+        self.file_path = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '.')[0]
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
         self.the_db = db.DB(self.file_path, restart=False)
@@ -96,10 +97,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.cur_pg[constants.BASOPHIL] = 0
         self.cur_pg[constants.NO_CELL] = 0
         self.cur_pg[constants.NOT_SURE] = 0
-        self.cell_per_pg = 50
-        self.rows = 5
-        self.cols = 10
-        assert(self.rows*self.cols == self.cell_per_pg)
+        self.cell_per_pg = 51
+        self.rows = 3
+        self.cols = 17
+        #assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
         self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros) / self.cell_per_pg))
@@ -161,93 +162,111 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.current_entries = blah[self.cur_pg[self.cur_cell_type] * self.cell_per_pg: (self.cur_pg[self.cur_cell_type]+1) * self.cell_per_pg]
 
     def display_cell_grid_ui(self):
-        self.main_widget = QtGui.QWidget(self)
-        vbox = QtGui.QVBoxLayout(self.main_widget)
-        label = QtGui.QLabel("""Click on cells to re-label them. Click on previous and next buttons to see more cells. Click on buttons with cell names to see cells of that type. Click re-sort button to move re-labelled cells to their proper category """)
-        label.setWordWrap(True)
-        vbox.addWidget(label)
-        btn_neutrophils = QtGui.QPushButton("Neutrophils")
+        self.main_widget = QtWidgets.QWidget(self)
+        vbox = QtWidgets.QVBoxLayout(self.main_widget)
+        #label = QtWidgets.QLabel("""Click on cells to re-label them. Click on previous and next buttons to see more cells. Click on buttons with cell names to see cells of that type. Click re-sort button to move re-labelled cells to their proper category """)
+        #label.setWordWrap(True)
+        #vbox.addWidget(label)
+        btn_neutrophils = QtWidgets.QPushButton("Neutrophils")
         btn_neutrophils.clicked.connect(self.btn_neutrophils_clicked)
         btn_neutrophils.setMaximumSize(150, 75)
-        btn_lymphocyte = QtGui.QPushButton("Lymphocyte")
+        btn_lymphocyte = QtWidgets.QPushButton("Lymphocyte")
         btn_lymphocyte.clicked.connect(self.btn_lymphocyte_clicked)
         btn_lymphocyte.setMaximumSize(150, 75)
-        btn_monocytes = QtGui.QPushButton("Monocytes")
+        btn_monocytes = QtWidgets.QPushButton("Monocytes")
         btn_monocytes.clicked.connect(self.btn_monocytes_clicked)
         btn_monocytes.setMaximumSize(150, 75)
-        btn_eosinophil = QtGui.QPushButton("Eosinophil")
+        btn_eosinophil = QtWidgets.QPushButton("Eosinophil")
         btn_eosinophil.clicked.connect(self.btn_eosinophil_clicked)
         btn_eosinophil.setMaximumSize(150, 75)
-        btn_basophil = QtGui.QPushButton("Basophil")
+        btn_basophil = QtWidgets.QPushButton("Basophil")
         btn_basophil.clicked.connect(self.btn_basophil_clicked)
         btn_basophil.setMaximumSize(150, 75)
-        btn_unsure = QtGui.QPushButton("Unsure")
+        btn_unsure = QtWidgets.QPushButton("Unsure")
         btn_unsure.clicked.connect(self.btn_unsure_clicked)
         btn_unsure.setMaximumSize(150, 75)
-        btn_nocell = QtGui.QPushButton("No cell")
+        btn_nocell = QtWidgets.QPushButton("No cell")
         btn_nocell.clicked.connect(self.btn_nocell_clicked)
         btn_nocell.setMaximumSize(150, 75)
-        spacer = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        hbox = QtGui.QHBoxLayout()
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_neutrophils)
-        hbox.addItem(spacer)
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_lymphocyte)
-        hbox.addItem(spacer)
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_monocytes)
         vbox.addLayout(hbox)
-        hbox = QtGui.QHBoxLayout()
-        hbox.addItem(spacer)
+        hbox = QtWidgets.QHBoxLayout()
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_eosinophil)
-        hbox.addItem(spacer)
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_basophil)
-        hbox.addItem(spacer)
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_unsure)
-        hbox.addItem(spacer)
+        #hbox.addItem(spacer)
         hbox.addWidget(btn_nocell)
         vbox.addLayout(hbox)
-        self.label_cell_type = QtGui.QLabel("Current Cell Type: " + self.cur_cell_type)
+        self.label_cell_type = QtWidgets.QLabel("Current Cell Type: " + self.cur_cell_type)
         self.label_cell_type.setStyleSheet('font-size: 18pt; font-weight: bold;')
         vbox.addWidget(self.label_cell_type)
-        self.label_cur_page = QtGui.QLabel("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
+        hbox_temp = QtWidgets.QHBoxLayout(self.main_widget)
+        hbox_temp.setContentsMargins(0, 0, 0, 0)
+        hbox_temp.setSpacing(0)
+        #cur_pg_label = QtWidgets.QLabel("Current Page: ")
+        #cur_pg_label.setStyleSheet('font-size: 16pt; font-weight: bold;')
+        #hbox_temp.addWidget(cur_pg_label)
+        self.label_cur_page = QtWidgets.QLabel("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
         self.label_cur_page.setStyleSheet('font-size: 16pt; font-weight: bold;')
-        vbox.addWidget(self.label_cur_page)
+        #self.label_cur_page.setMaximumSize(150, 75)
+        hbox_temp.addWidget(self.label_cur_page)
+        self.line_edit_cur_page = QtWidgets.QLineEdit()
+        self.line_edit_cur_page.setMaximumSize(75, 75)
+        #self.line_edit_cur_page.setStyleSheet('font-size: 16pt; font-weight: bold; background-color: yellow')
+        hbox_temp.addWidget(self.line_edit_cur_page)
+        self.btn_set_page = QtWidgets.QPushButton("Set page")
+        #self.btn_set_page.setStyleSheet('font-size: 16pt; font-weight: bold; background-color: purple')
+        self.btn_set_page.setMaximumSize(150, 75)
+        self.btn_set_page.clicked.connect(self.btn_set_page_clicked)
+        hbox_temp.addWidget(self.btn_set_page)
+        #hbox_temp.addSpacerItem(spacer)
+        vbox.addLayout(hbox_temp)
         self.sc = MplCanvas(self, self.rows, self.cols, self.main_widget)
-        #self.sc.setMinimumSize(500, 400)
+        #self.sc.setMinimumSize(400, 600)
         self.sc.change_images(self.cur_images, self.current_entries, self.current_modified_indexes)
         vbox.addWidget(self.sc)
-        self.btn_previous = QtGui.QPushButton("Previous Pg.")
+        self.btn_previous = QtWidgets.QPushButton("Previous Pg.")
         self.btn_previous.clicked.connect(self.btn_previous_clicked)
-        self.btn_previous.setMaximumSize(150, 75)
+        self.btn_previous.setMaximumSize(150, 42)
         self.btn_previous.setEnabled(False)
-        self.btn_next = QtGui.QPushButton("Next Pg.")
+        self.btn_next = QtWidgets.QPushButton("Next Pg.")
         self.btn_next.clicked.connect(self.btn_next_clicked)
-        self.btn_next.setMaximumSize(150, 75)
-        self.btn_deselect = QtGui.QPushButton("De-select")
+        self.btn_next.setMaximumSize(150, 42)
+        self.btn_deselect = QtWidgets.QPushButton("De-select")
         self.btn_deselect.clicked.connect(self.btn_deselect_clicked)
         self.btn_deselect.setMaximumSize(150, 75)
-        self.btn_select_all = QtGui.QPushButton("Select All")
+        self.btn_select_all = QtWidgets.QPushButton("Select All")
         self.btn_select_all.clicked.connect(self.btn_select_all_clicked)
         self.btn_select_all.setMaximumSize(150, 75)
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(self.btn_previous)
         hbox.addItem(spacer)
         hbox.addWidget(self.btn_next)
         vbox.addLayout(hbox)
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(self.btn_deselect)
         hbox.addWidget(self.btn_select_all)
         vbox.addLayout(hbox)
-        vbox.addWidget(QtGui.QLabel("Bulk Change"))
+        vbox.addWidget(QtWidgets.QLabel("Bulk Change"))
         pop_up = MyPopup(self, None, self.the_db)
         vbox.addWidget(pop_up)
 
-        btn_resort = QtGui.QPushButton("Re-sort")
+        btn_resort = QtWidgets.QPushButton("Re-sort")
         btn_resort.clicked.connect(self.btn_resort_clicked)
         btn_resort.setMaximumSize(150, 75)
-        btn_save = QtGui.QPushButton("Save")
+        btn_save = QtWidgets.QPushButton("Save")
         btn_save.clicked.connect(self.btn_save_clicked)
         btn_save.setMaximumSize(150, 75)
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_resort)
         hbox.addWidget(btn_save)
         vbox.addLayout(hbox)
@@ -394,7 +413,12 @@ class ApplicationWindow(QtGui.QMainWindow):
             if np.array_equal(self.cur_images[x, :, :, :], image):
                 return x
 
-qApp = QtGui.QApplication(sys.argv)
+    def btn_set_page_clicked(self):
+        self.cur_pg[self.cur_cell_type] = int(self.line_edit_cur_page.text())-1
+        self.update_ui()
+        self.change_cell_type()
+
+qApp = QtWidgets.QApplication(sys.argv)
 
 aw = ApplicationWindow()
 aw.show()
