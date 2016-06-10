@@ -90,12 +90,6 @@ class MplCanvas(FigureCanvas):
         plt.tight_layout()
 
     def show_images(self):
-        #print("self.fig.axes", sys.getsizeof(self.fig.axes))
-        #print("self.fig", sys.getsizeof(self.fig))
-        #print("self.grid", sys.getsizeof(self.grid))
-        #while len(self.fig.axes) > 0:
-        #    self.fig.axes.pop(0)
-        #self.grid = ImageGrid(self.fig, 111, nrows_ncols=(self.rows, self.cols), label_mode="1", axes_pad=0.1,)
         for ax in self.fig.axes:
             if len(ax.artists) > 0:
                 ax.artists = []
@@ -126,7 +120,7 @@ class MplCanvas(FigureCanvas):
                         ax.artists[0].txt._text._text = ""
         self.draw()
 
-    def select_all(self, current_entries, current_modified_indexes):
+    def select_all(self):
         for i, ax in enumerate(self.grid.axes_all):
             if len(ax.artists) > 0:
                 ax.artists[0].txt._text._text = "*"
@@ -149,5 +143,4 @@ def add_inner_title(ax, title, loc, size=None, **kwargs):
     ax.add_artist(at)
     at.txt._text.set_path_effects([withStroke(foreground="w", linewidth=3)])
     at.txt._text.set_color("red")
-    #at.txt._text.set_backgroundcolor("green")
     return at

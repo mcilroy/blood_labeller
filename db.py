@@ -9,7 +9,7 @@ from entry import Entry
 
 class DB:
     def __init__(self, file_path, restart=False):
-        self.conn = sqlite3.connect('data/cells.db')
+        self.conn = sqlite3.connect('data/cell.db')
         self.idx = 0
         self.load_data(file_path)
         self.entries = []
@@ -27,8 +27,9 @@ class DB:
         c = self.conn.cursor()
         # Create table
         c.execute('''CREATE TABLE IF NOT EXISTS cells
-                     (file_name TEXT, index_in_array INTEGER, cell_type TEXT, cut_off INTEGER, more_than_one INTEGER,
-                      obstructions INTEGER, processed INTEGER, modified INTEGER, PRIMARY KEY (file_name, index_in_array))''')
+                     (file_name TEXT, patient_index INTEGER, index_in_array INTEGER, cell_type TEXT, cut_off INTEGER, more_than_one INTEGER,
+                      obstructions INTEGER, processed INTEGER, modified INTEGER, PRIMARY KEY
+                      (file_name, patient_index, index_in_array))''')
         self.conn.commit()
 
     def check_if_data_seen_before(self):
@@ -39,19 +40,82 @@ class DB:
             self.init_table()
 
     def init_table(self):
-        self.init_row(self.neutrophils.shape[0], self.offset_neutro, constants.NEUTROPHIL)
-        self.init_row(self.monocytes.shape[0], self.offset_mono, constants.MONOCYTE)
-        self.init_row(self.eosinophils.shape[0], self.offset_eosinophils, constants.EOSINOPHIL)
-        self.init_row(self.basophils.shape[0], self.offset_basophils, constants.BASOPHIL)
+        for x in range(len(self.training_images)):
+            self.init_patient(x)
 
-    def init_row(self, cell_length, offset, cell_type):
+    def init_patient(self, num):
         c = self.conn.cursor()
         data_entries = []
-        for i in range(cell_length):
-            data_entries.append((self.file_name, i+offset, cell_type, None, None, None, 0, 0))
-        c.executemany(''' INSERT INTO cells(file_name, index_in_array, cell_type, cut_off, more_than_one, obstructions,
-                        processed, modified) VALUES(?,?,?,?,?,?,?,?)''', data_entries)
+        for idx in range(self.training_images[num].shape[0]):
+            data_entries.append((self.file_name, num, idx, constants.UNLABELED, None, None, None, 0, 0))
+        c.executemany(''' INSERT INTO cells(file_name, patient_index, index_in_array, cell_type, cut_off, more_than_one, obstructions,
+                        processed, modified) VALUES(?,?,?,?,?,?,?,?,?)''', data_entries)
         self.conn.commit()
+
+    def get_entries_array(self, entry):
+        image = self.training_images[entry.patient_index][entry.index_in_array, :, :, :]
+        return image
+
+    def save_entries(self, entries):
+        data_entries = []
+        for entry in entries:
+            data_entries.append((entry.cell_type, entry.cutoff, entry.more_than_one, entry.obstructions,
+                                 entry.processed, entry.modified, entry.file_name, entry.patient_index,
+                                 entry.index_in_array))
+        c = self.conn.cursor()
+        c.executemany('''UPDATE cells SET cell_type=?, cut_off=?, more_than_one=?, obstructions=?, processed=?, modified=?
+            WHERE file_name=? AND patient_index=? AND index_in_array=?''', data_entries)
+        self.conn.commit()
+
+    def get_entries(self):
+        self.entries = []
+        self.idx = 0
+        c = self.conn.cursor()
+        c.execute('''SELECT * FROM cells''')
+        rows = c.fetchall()
+        for row in rows:
+            self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]))
+        return self.entries
+
+    def get_currently_displayed_images(self, entries):
+        images = np.zeros([len(entries), 81, 81, 3], dtype="uint8")
+        for i, entry in enumerate(entries):
+            image = self.training_images[entry.patient_index][entry.index_in_array, :, :, :]
+            images[i, :, :, :] = image
+        return images
+
+    def load_data(self, file_path):
+        # stored as batch, height, width, depth.
+        self.file_name = ntpath.basename(str(file_path))
+        train_val = np.load(str(file_path))
+        collages = train_val['collages']
+        self.training_images = collages
+        for x in xrange(len(self.training_images)):
+            self.training_images[x] = np.rollaxis(self.training_images[x], 1, 4)
+
+    def num_patients(self):
+        return len(self.training_images)
+
+    ######### UNUSED #######
+    ########################
+
+    def load_data_old(self, file_path):
+        self.file_name = ntpath.basename(str(file_path))
+        #DATA_LOCATION = '../../AlanFine'
+        #FILE_NAME = 'monocytes_neutrophils.npz'
+        train_val = np.load(str(file_path))
+        collages = train_val['collages']
+        # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
+        self.offset_neutro = 0
+        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[0:101, :, :, :]
+        self.offset_mono = self.neutrophils.shape[0]
+        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[0:101, :, :, :]
+        self.offset_basophils = self.neutrophils.shape[0] + self.monocytes.shape[0]
+        self.basophils = np.rollaxis(train_val['basophils'], 1, 4)
+        self.offset_eosinophils = self.neutrophils.shape[0] + self.monocytes.shape[0] + self.basophils.shape[0]
+        self.eosinophils = np.rollaxis(train_val['eosinophils'], 1, 4)
+        self.training_images = np.concatenate([self.neutrophils, self.monocytes, self.basophils, self.eosinophils])
+        #return neutrophils, monocytes, file_name
 
     def get_unprocessed_entries(self):
         self.entries = []
@@ -77,10 +141,6 @@ class DB:
         for row in rows:
             entries.append(Entry(self.file_name, row[0], row[1], 0, 0, 0, 1))
         return entries
-
-    def get_entries_array(self, entry):
-        image = self.training_images[entry.index_in_array, :, :, :]
-        return image
 
     def more_entries_available(self, reverse=False):
         if not reverse:
@@ -112,15 +172,6 @@ class DB:
                                                         modified, self.file_name, current_entry.index_in_array))
         self.conn.commit()
 
-    def save_entries(self, entries):
-        data_entries = []
-        for entry in entries:
-            data_entries.append((entry.cell_type, entry.cutoff, entry.more_than_one, entry.obstructions, entry.processed, entry.modified, entry.file_name, entry.index_in_array))
-        c = self.conn.cursor()
-        c.executemany('''UPDATE cells SET cell_type=?, cut_off=?, more_than_one=?, obstructions=?, processed=?, modified=?
-            WHERE file_name=? AND index_in_array=?''', data_entries)
-        self.conn.commit()
-
     def unprocess_previous(self):
         c = self.conn.cursor()
         previous_entry = self.entries[self.idx-2]
@@ -139,16 +190,6 @@ class DB:
     def close_db(self):
         self.conn.close()
 
-    def get_entries(self):
-        self.entries = []
-        self.idx = 0
-        c = self.conn.cursor()
-        c.execute('''SELECT * FROM cells''')
-        rows = c.fetchall()
-        for row in rows:
-            self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
-        return self.entries
-
     def get_cell_types(self):
         c = self.conn.cursor()
         c.execute('''SELECT DISTINCT cell_type FROM cells''')
@@ -158,26 +199,11 @@ class DB:
             names.append(row[0])
         return names
 
-    def get_currently_displayed_images(self, entries):
-        images = np.zeros([len(entries), 81, 81, 3], dtype="uint8")
-        for i, entry in enumerate(entries):
-            image = self.training_images[entry.index_in_array, :, :, :]
-            images[i, :, :, :] = image
-        return images
 
-    def load_data(self, file_path):
-        self.file_name = ntpath.basename(str(file_path))
-        #DATA_LOCATION = '../../AlanFine'
-        #FILE_NAME = 'monocytes_neutrophils.npz'
-        train_val = np.load(str(file_path))
-        # stored as batch, depth, height, width. Tensorflow wants -> batch, height, width, depth
-        self.offset_neutro = 0
-        self.neutrophils = np.rollaxis(train_val['neutrophils'], 1, 4)#[0:101, :, :, :]
-        self.offset_mono = self.neutrophils.shape[0]
-        self.monocytes = np.rollaxis(train_val['monocytes'], 1, 4)#[0:101, :, :, :]
-        self.offset_basophils = self.neutrophils.shape[0] + self.monocytes.shape[0]
-        self.basophils = np.rollaxis(train_val['basophils'], 1, 4)
-        self.offset_eosinophils = self.neutrophils.shape[0] + self.monocytes.shape[0] + self.basophils.shape[0]
-        self.eosinophils = np.rollaxis(train_val['eosinophils'], 1, 4)
-        self.training_images = np.concatenate([self.neutrophils, self.monocytes, self.basophils, self.eosinophils])
-        #return neutrophils, monocytes, file_name
+
+
+
+
+
+
+

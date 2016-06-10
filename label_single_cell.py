@@ -27,27 +27,6 @@ class MyPopup(QWidget):
             self.sc = StaticMplCanvas(self.main_widget, width=5, height=4, dpi=100)
             self.sc.show_image(self.the_db.get_entries_array(entry))
             vbox.addWidget(self.sc)
-        # label = QtWidgets.QLabel("Problems with image. Check if applicable. Can leave blank.")
-        # label.setWordWrap(True)
-        # vbox.addWidget(label)
-        #
-        # hbox1 = QtWidgets.QHBoxLayout()
-        # self.ckb_cut_off = QtWidgets.QCheckBox("Cut off")
-        # self.ckb_cut_off.setEnabled(False)
-        # if not self.bulk_add and entry.cutoff:
-        #     self.ckb_cut_off.setChecked(True)
-        # self.ckb_more_than_one = QtWidgets.QCheckBox("More than one cell")
-        # self.ckb_more_than_one.setEnabled(False)
-        # if not self.bulk_add and entry.more_than_one:
-        #     self.ckb_more_than_one.setChecked(True)
-        # self.ckb_obstructions = QtWidgets.QCheckBox("Obstruction")
-        # self.ckb_obstructions.setEnabled(False)
-        # if not self.bulk_add and entry.obstructions:
-        #     self.ckb_obstructions.setChecked(True)
-        # hbox1.addWidget(self.ckb_cut_off)
-        # hbox1.addWidget(self.ckb_more_than_one)
-        # hbox1.addWidget(self.ckb_obstructions)
-        # vbox.addLayout(hbox1)
 
         label = QtWidgets.QLabel("Select which cell category best fits the image.")
         label.setWordWrap(True)
@@ -88,6 +67,12 @@ class MyPopup(QWidget):
         self.button_no_cell.setMaximumSize(150, 75)
         self.button_no_cell.clicked.connect(self.button_no_cell_clicked)
         hbox2.addWidget(self.button_no_cell)
+
+        self.button_unlabeled = QtWidgets.QPushButton("Unlabeled")
+        self.button_unlabeled.setMaximumSize(150, 75)
+        self.button_unlabeled.clicked.connect(self.button_unlabeled_clicked)
+        hbox2.addWidget(self.button_unlabeled)
+
         vbox.addLayout(hbox2)
         self.setLayout(vbox)
 
@@ -119,11 +104,15 @@ class MyPopup(QWidget):
         cell_type = constants.NO_CELL
         self.process_button_clicked(cell_type)
 
+    def button_unlabeled_clicked(self):
+        cell_type = constants.UNLABELED
+        self.process_button_clicked(cell_type)
+
     def process_button_clicked(self, cell_type):
         if self.bulk_add:
             #self.main.modify_bulk_entries(cell_type, self.ckb_cut_off.isChecked(), self.ckb_more_than_one.isChecked(), self.ckb_obstructions.isChecked())
             self.main.modify_bulk_entries(cell_type, False, False, False)
         else:
             #self.main.modify_entry(Entry(self.entry.file_name, self.entry.index_in_array, cell_type, self.ckb_cut_off.isChecked(), self.ckb_more_than_one.isChecked(), self.ckb_obstructions.isChecked(), processed=False, modified=False))
-            self.main.modify_entry(Entry(self.entry.file_name, self.entry.index_in_array, cell_type, False, False, False, processed=False, modified=False))
+            self.main.modify_entry(Entry(self.entry.file_name, self.entry.patient_index, self.entry.index_in_array, cell_type, False, False, False, processed=False, modified=False))
             self.close()

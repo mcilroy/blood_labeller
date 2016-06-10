@@ -48,8 +48,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.baso = []
         self.unsure = []
         self.no_cell = []
+        self.unlabeled = []
         self.pop_up = None
         self.display_opening_menu('Welcome. To load data go to : File -> Load Data')
+        self.cur_patient = 0
 
     def display_opening_menu(self, instructions):
         self.main_widget = QtWidgets.QWidget(self)
@@ -57,7 +59,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         label.setAlignment(QtCore.Qt.AlignCenter)
         label.setWordWrap(True)
         vbox = QtWidgets.QVBoxLayout(self.main_widget)
-
         hbox = QtWidgets.QVBoxLayout()
         hbox.addWidget(label)
         vbox.addLayout(hbox)
@@ -84,10 +85,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
         self.the_db = db.DB(self.file_path, restart=False)
-        self.initialize()
+        self.initialize(self.cur_patient)
 
-    def initialize(self):
-        self.cur_cell_type = constants.NEUTROPHIL
+    def initialize(self, cur_patient=0):
+        self.cur_patient = cur_patient
+        self.num_patients = self.the_db.num_patients()
+        self.cur_cell_type = constants.UNLABELED
         self.cur_pg = dict()
         self.num_pages = dict()
         self.cur_pg[constants.NEUTROPHIL] = 0
@@ -97,63 +100,70 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cur_pg[constants.BASOPHIL] = 0
         self.cur_pg[constants.NO_CELL] = 0
         self.cur_pg[constants.NOT_SURE] = 0
+        self.cur_pg[constants.UNLABELED] = 0
         self.cell_per_pg = 51
         self.rows = 3
         self.cols = 17
         #assert(self.rows*self.cols == self.cell_per_pg)
         self.entries = self.the_db.get_entries()
         self.split_cells()
-        self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros) / self.cell_per_pg))
-        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.mono) / self.cell_per_pg))
-        self.num_pages[constants.LYMPHOCYTE] = int(math.ceil(len(self.lymph) / self.cell_per_pg))
-        self.num_pages[constants.EOSINOPHIL] = int(math.ceil(len(self.eosin) / self.cell_per_pg))
-        self.num_pages[constants.BASOPHIL] = int(math.ceil(len(self.baso) / self.cell_per_pg))
-        self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell) / self.cell_per_pg))
-        self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure) / self.cell_per_pg))
+        self.num_pages[constants.NEUTROPHIL] = int(math.ceil(len(self.neutros[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.MONOCYTE] = int(math.ceil(len(self.mono[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.LYMPHOCYTE] = int(math.ceil(len(self.lymph[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.EOSINOPHIL] = int(math.ceil(len(self.eosin[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.BASOPHIL] = int(math.ceil(len(self.baso[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.UNLABELED] = int(math.ceil(len(self.unlabeled[self.cur_patient]) / self.cell_per_pg))
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []
         self.current_modified_indexes = []
 
     def split_cells(self):
-        self.neutros = []
-        self.lymph = []
-        self.mono = []
-        self.eosin = []
-        self.baso = []
-        self.unsure = []
-        self.no_cell = []
+        self.neutros = [[] for w in range(self.num_patients)]
+        self.lymph = [[] for w in range(self.num_patients)]
+        self.mono = [[] for w in range(self.num_patients)]
+        self.eosin = [[] for w in range(self.num_patients)]
+        self.baso = [[] for w in range(self.num_patients)]
+        self.unsure = [[] for w in range(self.num_patients)]
+        self.no_cell = [[] for w in range(self.num_patients)]
+        self.unlabeled = [[] for w in range(self.num_patients)]
         for entry in self.entries:
             if entry.cell_type == constants.NEUTROPHIL:
-                self.neutros.append(entry)
+                self.neutros[entry.patient_index].append(entry)
             elif entry.cell_type == constants.MONOCYTE:
-                self.mono.append(entry)
+                self.mono[entry.patient_index].append(entry)
             elif entry.cell_type == constants.LYMPHOCYTE:
-                self.lymph.append(entry)
+                self.lymph[entry.patient_index].append(entry)
             elif entry.cell_type == constants.EOSINOPHIL:
-                self.eosin.append(entry)
+                self.eosin[entry.patient_index].append(entry)
             elif entry.cell_type == constants.BASOPHIL:
-                self.baso.append(entry)
+                self.baso[entry.patient_index].append(entry)
             elif entry.cell_type == constants.NO_CELL:
-                self.no_cell.append(entry)
+                self.no_cell[entry.patient_index].append(entry)
             elif entry.cell_type == constants.NOT_SURE:
-                self.unsure.append(entry)
+                self.unsure[entry.patient_index].append(entry)
+            elif entry.cell_type == constants.UNLABELED:
+                self.unlabeled[entry.patient_index].append(entry)
 
     def set_current_entries(self):
         if self.cur_cell_type == constants.NEUTROPHIL:
-            blah = self.neutros
+            blah = self.neutros[self.cur_patient]
         elif self.cur_cell_type == constants.MONOCYTE:
-            blah = self.mono
+            blah = self.mono[self.cur_patient]
         elif self.cur_cell_type == constants.LYMPHOCYTE:
-            blah = self.lymph
+            blah = self.lymph[self.cur_patient]
         elif self.cur_cell_type == constants.BASOPHIL:
-            blah = self.baso
+            blah = self.baso[self.cur_patient]
         elif self.cur_cell_type == constants.NOT_SURE:
-            blah = self.unsure
+            blah = self.unsure[self.cur_patient]
         elif self.cur_cell_type == constants.NO_CELL:
-            blah = self.no_cell
+            blah = self.no_cell[self.cur_patient]
         elif self.cur_cell_type == constants.EOSINOPHIL:
-            blah = self.eosin
+            blah = self.eosin[self.cur_patient]
+        elif self.cur_cell_type == constants.UNLABELED:
+            blah = self.unlabeled[self.cur_patient]
         if self.cur_pg[self.cur_cell_type] > len(blah)/self.cell_per_pg:
             return []
         if (self.cur_pg[self.cur_cell_type]+1) * self.cell_per_pg > len(blah):
@@ -164,9 +174,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def display_cell_grid_ui(self):
         self.main_widget = QtWidgets.QWidget(self)
         vbox = QtWidgets.QVBoxLayout(self.main_widget)
-        #label = QtWidgets.QLabel("""Click on cells to re-label them. Click on previous and next buttons to see more cells. Click on buttons with cell names to see cells of that type. Click re-sort button to move re-labelled cells to their proper category """)
-        #label.setWordWrap(True)
-        #vbox.addWidget(label)
         btn_neutrophils = QtWidgets.QPushButton("Neutrophils")
         btn_neutrophils.clicked.connect(self.btn_neutrophils_clicked)
         btn_neutrophils.setMaximumSize(150, 75)
@@ -188,23 +195,21 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_nocell = QtWidgets.QPushButton("No cell")
         btn_nocell.clicked.connect(self.btn_nocell_clicked)
         btn_nocell.setMaximumSize(150, 75)
+        btn_unlabeled = QtWidgets.QPushButton("Unlabeled")
+        btn_unlabeled.clicked.connect(self.btn_unlabeled_clicked)
+        btn_unlabeled.setMaximumSize(150, 75)
         spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_neutrophils)
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_lymphocyte)
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_monocytes)
         vbox.addLayout(hbox)
         hbox = QtWidgets.QHBoxLayout()
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_eosinophil)
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_basophil)
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_unsure)
-        #hbox.addItem(spacer)
         hbox.addWidget(btn_nocell)
+        hbox.addWidget(btn_unlabeled)
         vbox.addLayout(hbox)
         self.label_cell_type = QtWidgets.QLabel("Current Cell Type: " + self.cur_cell_type)
         self.label_cell_type.setStyleSheet('font-size: 18pt; font-weight: bold;')
@@ -212,26 +217,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         hbox_temp = QtWidgets.QHBoxLayout(self.main_widget)
         hbox_temp.setContentsMargins(0, 0, 0, 0)
         hbox_temp.setSpacing(0)
-        #cur_pg_label = QtWidgets.QLabel("Current Page: ")
-        #cur_pg_label.setStyleSheet('font-size: 16pt; font-weight: bold;')
-        #hbox_temp.addWidget(cur_pg_label)
         self.label_cur_page = QtWidgets.QLabel("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
         self.label_cur_page.setStyleSheet('font-size: 16pt; font-weight: bold;')
-        #self.label_cur_page.setMaximumSize(150, 75)
         hbox_temp.addWidget(self.label_cur_page)
         self.line_edit_cur_page = QtWidgets.QLineEdit()
         self.line_edit_cur_page.setMaximumSize(75, 75)
-        #self.line_edit_cur_page.setStyleSheet('font-size: 16pt; font-weight: bold; background-color: yellow')
         hbox_temp.addWidget(self.line_edit_cur_page)
         self.btn_set_page = QtWidgets.QPushButton("Set page")
-        #self.btn_set_page.setStyleSheet('font-size: 16pt; font-weight: bold; background-color: purple')
         self.btn_set_page.setMaximumSize(150, 75)
         self.btn_set_page.clicked.connect(self.btn_set_page_clicked)
         hbox_temp.addWidget(self.btn_set_page)
-        #hbox_temp.addSpacerItem(spacer)
         vbox.addLayout(hbox_temp)
         self.sc = MplCanvas(self, self.rows, self.cols, self.main_widget)
-        #self.sc.setMinimumSize(400, 600)
         self.sc.change_images(self.cur_images, self.current_entries, self.current_modified_indexes)
         vbox.addWidget(self.sc)
         self.btn_previous = QtWidgets.QPushButton("Previous Pg.")
@@ -266,9 +263,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_save = QtWidgets.QPushButton("Save")
         btn_save.clicked.connect(self.btn_save_clicked)
         btn_save.setMaximumSize(150, 75)
+
+        dropdown_patient = QtWidgets.QComboBox()
+        for x in range(self.num_patients):
+            dropdown_patient.addItem("Patient "+str(x))
+        dropdown_patient.activated[str].connect(self.dropdown_patient_clicked)
+        dropdown_patient.setMaximumSize(180, 75)
+
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_resort)
         hbox.addWidget(btn_save)
+        hbox.addWidget(dropdown_patient)
         vbox.addLayout(hbox)
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
@@ -308,6 +313,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.update_ui()
         self.change_cell_type()
 
+    def btn_unlabeled_clicked(self):
+        self.cur_cell_type = constants.UNLABELED
+        self.update_ui()
+        self.change_cell_type()
+
+    def dropdown_patient_clicked(self, text):
+        num = int(text.split(" ", 1)[1])
+        self.cur_patient = num
+        self.initialize(self.cur_patient)
+        self.update_ui()
+        self.change_cell_type()
+
     def update_ui(self):
         self.label_cell_type.setText("Current Cell Type: " + self.cur_cell_type)
         self.label_cur_page.setText("Current Page: " + str(self.cur_pg[self.cur_cell_type]+1) + " of " + str(self.num_pages[self.cur_cell_type]))
@@ -325,7 +342,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.current_modified_indexes = []
         for i, cur in enumerate(self.current_entries):
             for mod in self.modified:
-                if cur.file_name == mod.file_name and cur.index_in_array == mod.index_in_array:
+                if cur.file_name == mod.file_name and cur.patient_index == mod.patient_index and cur.index_in_array == mod.index_in_array:
                     self.current_modified_indexes.append(i)
                     break
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
@@ -345,7 +362,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.sc.deselect(self.current_entries, self.current_modified_indexes)
 
     def btn_select_all_clicked(self):
-        self.sc.select_all(self.current_entries, self.current_modified_indexes)
+        self.sc.select_all()
 
     def display_pop_up(self, image):
         for x in xrange(self.cur_images.shape[0]):
@@ -356,7 +373,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def modify_entry(self, entry):
         for i, an_entry in enumerate(self.current_entries):
-            if an_entry.file_name == entry.file_name and an_entry.index_in_array == entry.index_in_array:  # find the entry in current entries
+            if an_entry.file_name == entry.file_name and an_entry.patient_index == entry.patient_index and an_entry.index_in_array == entry.index_in_array:  # find the entry in current entries
                 # make label blank
                 if len(self.sc.grid.axes_all[i].artists) > 0:
                     self.sc.grid.axes_all[i].artists[0].txt._text._text = ""
@@ -367,8 +384,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 if an_entry.cell_type == entry.cell_type:  # did the cell_type stay the same?
                     # remove entry from modified list
                     try:
-                        self.modified = [s for s in self.modified if not (s.file_name == entry.file_name and s.index_in_array == entry.index_in_array)]
-                        #self.modified.remove(entry)
+                        self.modified = [s for s in self.modified if not (s.file_name == entry.file_name and s.patient_index == entry.patient_index and s.index_in_array == entry.index_in_array)]
                         self.current_modified_indexes.remove(i)
                     except ValueError:
                         pass
@@ -383,7 +399,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def btn_resort_clicked(self):
         self.btn_save_clicked()
-        self.initialize()
+        self.initialize(self.cur_patient)
         self.update_ui()
         self.change_cell_type()
 
@@ -396,14 +412,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                     if an_entry.cell_type == cell_type:  # did the cell_type stay the same?
                         # remove entry from modified list because they are the same
                         try:
-                            self.modified = [s for s in self.modified if not (s.file_name == an_entry.file_name and s.index_in_array == an_entry.index_in_array)]
+                            self.modified = [s for s in self.modified if not (s.file_name == an_entry.file_name and s.patient_index == an_entry.patient_index and s.index_in_array == an_entry.index_in_array)]
                             #self.modified.remove(an_entry)
                             self.current_modified_indexes.remove(i)
                         except ValueError:
                             pass
                     else:
                         self.sc.grid.axes_all[i].artists[0].txt._text._text = cell_type  # set label to modified cell type label
-                        self.modified.append(Entry(an_entry.file_name, an_entry.index_in_array, cell_type,
+                        self.modified.append(Entry(an_entry.file_name, an_entry.patient_index, an_entry.index_in_array, cell_type,
                                          cut_off, more_than_one, obstructions, processed=False, modified=False))
                         self.current_modified_indexes.append(i)
         self.sc.draw()

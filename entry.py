@@ -1,6 +1,7 @@
 class Entry:
-    def __init__(self, file_name, index_in_array, cell_type, cutoff, more_than_one, obstructions, processed, modified):
+    def __init__(self, file_name, patient_index, index_in_array, cell_type, cutoff, more_than_one, obstructions, processed, modified):
         self.file_name = file_name
+        self.patient_index = patient_index
         self.index_in_array = index_in_array
         self.cell_type = cell_type
         self.cutoff = cutoff
@@ -12,6 +13,10 @@ class Entry:
     @property
     def index_in_array(self):
         return self.index_in_array
+
+    @property
+    def patient_index(self):
+        return self.patient_index
 
     @property
     def modified(self):
