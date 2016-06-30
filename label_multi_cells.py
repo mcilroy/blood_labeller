@@ -263,6 +263,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_save = QtWidgets.QPushButton("Save")
         btn_save.clicked.connect(self.btn_save_clicked)
         btn_save.setMaximumSize(150, 75)
+        btn_export = QtWidgets.QPushButton("Export")
+        btn_export.clicked.connect(self.btn_export_clicked)
+        btn_export.setMaximumSize(150, 75)
 
         dropdown_patient = QtWidgets.QComboBox()
         for x in range(self.num_patients):
@@ -402,6 +405,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.initialize(self.cur_patient)
         self.update_ui()
         self.change_cell_type()
+    
+    def btn_export_clicked(self):
+        path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
+        if not path: return
+        with open(path,'w') as f:
+          f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
+          for i,x in enumerate(zip(self.neutros, self.lymph, self.mono, self.eosin, self.baso, self.unsure, self.no_cell, self.unlabeled)):
+            f.write(','.join(['%i'%(i+1)] + ['%i'%len(xi) for xi in x]) + '\n')
 
     def modify_bulk_entries(self, cell_type, cut_off, more_than_one, obstructions):
         for i, an_entry in enumerate(self.current_entries):
