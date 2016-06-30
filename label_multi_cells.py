@@ -9,7 +9,7 @@ import sys
 from PyQt5 import QtCore, QtWidgets
 
 import numpy as np
-
+import os
 import constants
 import db
 from entry import Entry
@@ -84,7 +84,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.file_path = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '.')[0]
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
-        self.the_db = db.DB(self.file_path, restart=False)
+        self.the_db = db.DB(os.path.join('data', 'cell_labeled1.db'), self.file_path, restart=False)
         self.initialize(self.cur_patient)
 
     def initialize(self, cur_patient=0):
@@ -177,39 +177,55 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_neutrophils = QtWidgets.QPushButton("Neutrophils")
         btn_neutrophils.clicked.connect(self.btn_neutrophils_clicked)
         btn_neutrophils.setMaximumSize(150, 75)
+        self.lbl_neutro_count = QtWidgets.QLabel(str(len(self.neutros[self.cur_patient])))
         btn_lymphocyte = QtWidgets.QPushButton("Lymphocyte")
         btn_lymphocyte.clicked.connect(self.btn_lymphocyte_clicked)
         btn_lymphocyte.setMaximumSize(150, 75)
+        self.lbl_lymph_count = QtWidgets.QLabel(str(len(self.lymph[self.cur_patient])))
         btn_monocytes = QtWidgets.QPushButton("Monocytes")
         btn_monocytes.clicked.connect(self.btn_monocytes_clicked)
         btn_monocytes.setMaximumSize(150, 75)
+        self.lbl_monocytes_count = QtWidgets.QLabel(str(len(self.mono[self.cur_patient])))
         btn_eosinophil = QtWidgets.QPushButton("Eosinophil")
         btn_eosinophil.clicked.connect(self.btn_eosinophil_clicked)
         btn_eosinophil.setMaximumSize(150, 75)
+        self.lbl_eosinophil_count = QtWidgets.QLabel(str(len(self.eosin[self.cur_patient])))
         btn_basophil = QtWidgets.QPushButton("Basophil")
         btn_basophil.clicked.connect(self.btn_basophil_clicked)
         btn_basophil.setMaximumSize(150, 75)
+        self.lbl_basophil_count = QtWidgets.QLabel(str(len(self.baso[self.cur_patient])))
         btn_unsure = QtWidgets.QPushButton("Unsure")
         btn_unsure.clicked.connect(self.btn_unsure_clicked)
         btn_unsure.setMaximumSize(150, 75)
+        self.lbl_unsure_count = QtWidgets.QLabel(str(len(self.unsure[self.cur_patient])))
         btn_nocell = QtWidgets.QPushButton("No cell")
         btn_nocell.clicked.connect(self.btn_nocell_clicked)
         btn_nocell.setMaximumSize(150, 75)
+        self.lbl_nocell_count = QtWidgets.QLabel(str(len(self.no_cell[self.cur_patient])))
         btn_unlabeled = QtWidgets.QPushButton("Unlabeled")
         btn_unlabeled.clicked.connect(self.btn_unlabeled_clicked)
         btn_unlabeled.setMaximumSize(150, 75)
+        self.lbl_unlabeled_count = QtWidgets.QLabel(str(len(self.unlabeled[self.cur_patient])))
         spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_neutrophils)
+        hbox.addWidget(self.lbl_neutro_count)
         hbox.addWidget(btn_lymphocyte)
+        hbox.addWidget(self.lbl_lymph_count)
         hbox.addWidget(btn_monocytes)
+        hbox.addWidget(self.lbl_monocytes_count)
         vbox.addLayout(hbox)
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_eosinophil)
+        hbox.addWidget(self.lbl_eosinophil_count)
         hbox.addWidget(btn_basophil)
+        hbox.addWidget(self.lbl_basophil_count)
         hbox.addWidget(btn_unsure)
+        hbox.addWidget(self.lbl_unsure_count)
         hbox.addWidget(btn_nocell)
+        hbox.addWidget(self.lbl_nocell_count)
         hbox.addWidget(btn_unlabeled)
+        hbox.addWidget(self.lbl_unlabeled_count)
         vbox.addLayout(hbox)
         self.label_cell_type = QtWidgets.QLabel("Current Cell Type: " + self.cur_cell_type)
         self.label_cell_type.setStyleSheet('font-size: 18pt; font-weight: bold;')
@@ -336,6 +352,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.btn_next.setEnabled(False)
         else:
             self.btn_next.setEnabled(True)
+        self.lbl_neutro_count.setText(str(len(self.neutros[self.cur_patient])))
+        self.lbl_monocytes_count.setText(str(len(self.mono[self.cur_patient])))
+        self.lbl_lymph_count.setText(str(len(self.lymph[self.cur_patient])))
+        self.lbl_eosinophil_count.setText(str(len(self.eosin[self.cur_patient])))
+        self.lbl_basophil_count.setText(str(len(self.baso[self.cur_patient])))
+        self.lbl_nocell_count.setText(str(len(self.no_cell[self.cur_patient])))
+        self.lbl_unlabeled_count.setText(str(len(self.unlabeled[self.cur_patient])))
+        self.lbl_unsure_count.setText(str(len(self.unsure[self.cur_patient])))
 
     def change_cell_type(self):
         self.set_current_entries()

@@ -8,8 +8,8 @@ from entry import Entry
 
 
 class DB:
-    def __init__(self, file_path, restart=False):
-        self.conn = sqlite3.connect('data/cell.db')
+    def __init__(self, db_path, file_path, restart=False):
+        self.conn = sqlite3.connect(db_path)
         self.idx = 0
         self.load_data(file_path)
         self.entries = []
@@ -96,6 +96,18 @@ class DB:
     def num_patients(self):
         return len(self.training_images)
 
+    def get_processed_clean_entries(self):
+        entries = []
+        c = self.conn.cursor()
+        c.execute('''SELECT patient_index, index_in_array, cell_type FROM cells where file_name=? AND (cell_type=? OR cell_type=? OR
+        cell_type=? OR cell_type=? OR cell_type=?) AND cut_off=0 AND more_than_one=0 AND obstructions=0 ''',
+                  (self.file_name, constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
+                   constants.BASOPHIL))
+        rows = c.fetchall()
+        for row in rows:
+            entries.append(Entry(self.file_name, row[0], row[1], row[2], 0, 0, 0, 1, 0))
+        return entries
+
     ######### UNUSED #######
     ########################
 
@@ -129,18 +141,6 @@ class DB:
             return True
         else:
             return False
-
-    def get_processed_clean_entries(self):
-        entries = []
-        c = self.conn.cursor()
-        c.execute('''SELECT index_in_array, cell_type FROM cells where file_name=? AND (cell_type=? OR cell_type=? OR
-        cell_type=? OR cell_type=? OR cell_type=?) AND cut_off=0 AND more_than_one=0 AND obstructions=0 AND processed=1
-        ''', (self.file_name, constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
-              constants.BASOPHIL))
-        rows = c.fetchall()
-        for row in rows:
-            entries.append(Entry(self.file_name, row[0], row[1], 0, 0, 0, 1))
-        return entries
 
     def more_entries_available(self, reverse=False):
         if not reverse:
