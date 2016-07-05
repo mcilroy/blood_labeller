@@ -1,10 +1,8 @@
 import ntpath
 import sqlite3
-
-import numpy as np
-
 import constants
 from entry import Entry
+import numpy as np
 
 
 class DB:

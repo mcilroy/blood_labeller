@@ -1,7 +1,5 @@
 import os
-
 import numpy as np
-
 import constants
 import db
 
@@ -20,8 +18,8 @@ def main():
     basophils = create_np_array(entries, the_db, constants.BASOPHIL)
     eosinophils = create_np_array(entries, the_db, constants.EOSINOPHIL)
     lymphocytes = create_np_array(entries, the_db, constants.LYMPHOCYTE)
-
-    np.savez("data/pc9_collages_cleaned2", neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
+    filename, ext = os.path.splitext(FILE_NAME)
+    np.savez(os.path.join(DATA_LOCATION, filename+"_cleaned3"), neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
              eosinophils=eosinophils, lymphocytes=lymphocytes)
 
 

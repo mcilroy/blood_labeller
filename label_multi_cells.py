@@ -7,7 +7,6 @@ from __future__ import unicode_literals, division
 import math
 import sys
 from PyQt5 import QtCore, QtWidgets
-
 import numpy as np
 import os
 import constants
@@ -15,6 +14,10 @@ import db
 from entry import Entry
 from image_grid import MplCanvas, add_inner_title
 from label_single_cell import MyPopup
+import compare_coulter_counter
+
+DATA_FILE_PATH = "data"
+DB_NAME = 'cell_labeled1.db'
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
@@ -23,19 +26,26 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         # General layout and window
         self.setStyleSheet('font-size: 16pt; font-family: Courier;')
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("Label Cells 0.3")
+        self.setWindowTitle("Label Cells 0.4")
         self.setMinimumSize((150*6)+50, 840)
         self.file_menu = QtWidgets.QMenu('&File', self)
-        self.file_menu.addAction('&Load Data', self.load_and_display_data,
-                                 QtCore.Qt.CTRL + QtCore.Qt.Key_L)
-        self.file_menu.addAction('&Quit', self.file_quit,
-                                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
+        self.file_menu.addAction('&Load Data', self.load_and_display_data, QtCore.Qt.CTRL + QtCore.Qt.Key_L)
+        self.file_menu.addAction('&Quit', self.file_quit, QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
 
         self.help_menu = QtWidgets.QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('&Documentation', self.about)
+
+        self.stats_menu = QtWidgets.QMenu('&Stats', self)
+        self.stats_menu.addAction('&Display current patient statistics', self.display_patient_stats)
+        self.stats_menu.addAction('&Display global patient statistics', self.display_global_patient_stats)
+        self.stats_menu.addAction('&Export global patient statistics', self.export_global_patient_stats)
+        self.stats_menu.addAction('&Export raw labeled amounts per patient', self.export_raw_global_patient_stats)
+        self.menuBar().addSeparator()
+        self.menuBar().addMenu(self.stats_menu)
+        self.stats = compare_coulter_counter.Stats(DATA_FILE_PATH, DB_NAME)
         self.statusBar().showMessage('Ready')
         self.main_widget = None
         # db layer
@@ -72,19 +82,79 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.file_quit()
 
     def about(self):
-        QtWidgets.QMessageBox.about(self, "Documentation", '''0) Load Data from File Menu.\n 1) Select a cell to re-label.
-        \n 2) label cell.\n 3) move between pages.\n 4) select different cell types to display them\n 5) Click Save to
-             save.\n 6) Re-sort button re-sorts the re-labeled cells into their proper categories.''')
+        msbBox = QtWidgets.QMessageBox()
+        msbBox.setText("\nCommands:\nLoad:\nLoad data from filemenu, select file where cells located\n"
+                       "Save:\nSave the current labels.\nRe-sort:\nSaves and then resorts all the cells into their respective categories\n"
+                        "Cell buttons (top of page):\nClick to display cells of that type\nCell buttons (bottom page):\n"
+                        "Click to modify cell type of currently selected cells.\nCell image:\nClick to open larger version\n"
+                        "SHIFT+click cells:\nSelect multiple cells at once, then you can click bottom cell buttons to modify in bulk.\n"
+                        "Page naviation:\nSelect specific pages or use the previous/next buttons to switch pages.\n"
+                        "Select/Deselect all:\nClick to select all cells. Can then SHIFT+click to deselect what you don't want selected.\n"
+                        "Patient Selection:\nSelect current patient's cells\n"
+                        "Display stats by accessing the stats file menu.\n"
+                        "Export stats by assessing the file menu")
+        msbBox.setWindowTitle("Documentation")
+        retval = msbBox.exec_()
+
+    def display_patient_stats(self):
+        if len(self.entries) > 0:
+                self.statusBar().showMessage('Calculating...')
+                self.stats.re_calculate(self.file_path)
+                msg = self.stats.display_single_patient(self.cur_patient)
+                msbBox = QtWidgets.QMessageBox()
+                msbBox.setText(msg)
+                msbBox.setWindowTitle("Stats for patient: " + str(self.cur_patient))
+                retval = msbBox.exec_()
+                self.statusBar().showMessage('Ready')
+        else:
+            self.statusBar().showMessage('No data')
+
+    def display_global_patient_stats(self):
+        if len(self.entries) > 0:
+                self.statusBar().showMessage('Calculating...')
+                self.stats.re_calculate(self.file_path)
+                msg = self.stats.display_global_patient_stats()
+                msbBox = QtWidgets.QMessageBox()
+                msbBox.setText(msg)
+                msbBox.setWindowTitle("R-squared values for each cell-type")
+                retval = msbBox.exec_()
+                self.statusBar().showMessage('Ready')
+        else:
+            self.statusBar().showMessage('No data')
+
+    def export_global_patient_stats(self):
+        if len(self.entries) > 0:
+                self.statusBar().showMessage('Calculating...')
+                self.stats.re_calculate(self.file_path)
+                path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
+                self.stats.export_computed_global_patient_stats(path)
+                self.statusBar().showMessage('Ready')
+        else:
+            self.statusBar().showMessage('No data')
+
+    def export_raw_global_patient_stats(self):
+        if len(self.entries) > 0:
+                self.statusBar().showMessage('Calculating...')
+                self.stats.re_calculate(self.file_path)
+                path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
+                self.stats.export_raw_global_patient_stats(path, zip(self.neutros, self.lymph, self.mono, self.eosin,
+                                                                     self.baso, self.unsure, self.no_cell,
+                                                                     self.unlabeled))
+                self.statusBar().showMessage('Ready')
+        else:
+            self.statusBar().showMessage('No data')
 
     def load_and_display_data(self):
         self.load()
         self.display_cell_grid_ui()
+        self.statusBar().showMessage('Ready')
 
     def load(self):
         self.file_path = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '.')[0]
+        self.statusBar().showMessage('Initializing...')
         #file_path = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '/home/hallab/AlanFine')
         #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
-        self.the_db = db.DB(os.path.join('data', 'cell_labeled1.db'), self.file_path, restart=False)
+        self.the_db = db.DB(os.path.join(DATA_FILE_PATH, DB_NAME), self.file_path, restart=False)
         self.initialize(self.cur_patient)
 
     def initialize(self, cur_patient=0):
@@ -433,10 +503,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def btn_export_clicked(self):
         path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
         if not path: return
-        with open(path,'w') as f:
-          f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
-          for i,x in enumerate(zip(self.neutros, self.lymph, self.mono, self.eosin, self.baso, self.unsure, self.no_cell, self.unlabeled)):
-            f.write(','.join(['%i'%(i+1)] + ['%i'%len(xi) for xi in x]) + '\n')
+        with open(path, 'w') as f:
+            f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
+            for i, x in enumerate(zip(self.neutros, self.lymph, self.mono, self.eosin, self.baso, self.unsure, self.no_cell, self.unlabeled)):
+                f.write(','.join(['%i' % (i+1)] + ['%i' % len(xi) for xi in x]) + '\n')
 
     def modify_bulk_entries(self, cell_type, cut_off, more_than_one, obstructions):
         for i, an_entry in enumerate(self.current_entries):
