@@ -2,6 +2,8 @@ import os
 import numpy as np
 import constants
 import db
+import scipy
+import numpy
 
 CONSTANTS = {constants.LYMPHOCYTE, constants.EOSINOPHIL, constants.BASOPHIL, constants.MONOCYTE, constants.NEUTROPHIL}
 
@@ -37,6 +39,27 @@ def main():
             print(key + " coulter:"+"{:.2f}".format(coulter)+" manual:"+"{:.2f}".format(manual) +
                   " diff:"+"{:.2f}".format(diff))
         print("")
+    # r-squared - for each cell-type compute the r-squared, produces 6 r-squares
+    # remove 10, 15, 17, not finished labeling
+    indexes = np.array([10, 15, 29])
+    for key in coulter_labels:
+        mask = np.ones(len(coulter_labels[key]), dtype=bool)
+        mask[indexes] = False
+        coulter_labels[key] = coulter_labels[key][mask]
+        manual_labels[key] = manual_labels[key][mask]
+    #print(result)
+    #print(manual_labels[constants.LYMPHOCYTE])
+    #print(fit(coulter_labels[constants.LYMPHOCYTE][0:10], manual_labels[constants.LYMPHOCYTE][0:10]))
+
+    r_valuel = polyfit(coulter_labels[constants.LYMPHOCYTE], manual_labels[constants.LYMPHOCYTE], 1)
+    r_valuee = polyfit(coulter_labels[constants.EOSINOPHIL], manual_labels[constants.EOSINOPHIL], 1)
+    r_valuen = polyfit(coulter_labels[constants.NEUTROPHIL], manual_labels[constants.NEUTROPHIL], 1)
+    r_valuem = polyfit(coulter_labels[constants.MONOCYTE], manual_labels[constants.MONOCYTE], 1)
+    r_valueb = polyfit(coulter_labels[constants.BASOPHIL], manual_labels[constants.BASOPHIL], 1)
+    r_valuew = polyfit(coulter_labels['wbc'], manual_labels['wbc'], 1)
+    #slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(coulter_labels[constants.LYMPHOCYTE], manual[constants.LYMPHOCYTE])
+    print("lymph", r_valuel['determination'], "eosin", r_valuee['determination'], "neutro", r_valuen['determination'],
+          "mono", r_valuem['determination'], "baso", r_valueb['determination'], "wbc", r_valuew['determination'])
 
 
 def compute_stats(entries, num_patients):
@@ -47,12 +70,12 @@ def compute_stats(entries, num_patients):
                 if entries[x].patient_index == p:
                     if entries[x].cell_type == c:
                         if c not in manual:
-                            manual[c] = [0] * num_patients
+                            manual[c] = np.zeros((num_patients))  #[0] * num_patients
                             manual[c][p] = 1
                         else:
                             manual[c][p] += 1
 
-    manual['wbc'] = [0] * num_patients
+    manual['wbc'] = np.zeros((num_patients))
     for x in xrange(num_patients):
         single_patient = 0
         for key in manual:
@@ -66,5 +89,27 @@ def get_num_patients(entries):
     for x in xrange(len(entries)):
         nums.append(entries[x].patient_index)
     return len(np.unique(nums))
+
+
+# Polynomial Regression
+def polyfit(x, y, degree):
+    results = {}
+
+    coeffs = numpy.polyfit(x, y, degree)
+
+     # Polynomial Coefficients
+    results['polynomial'] = coeffs.tolist()
+
+    # r-squared
+    p = numpy.poly1d(coeffs)
+    # fit values, and mean
+    yhat = p(x)                         # or [p(z) for z in x]
+    ybar = numpy.sum(y)/len(y)          # or sum(y)/len(y)
+    ssreg = numpy.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
+    sstot = numpy.sum((y - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
+    results['determination'] = ssreg / sstot
+
+    return results
+
 
 main()

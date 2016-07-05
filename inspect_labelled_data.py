@@ -21,7 +21,7 @@ def main():
     eosinophils = create_np_array(entries, the_db, constants.EOSINOPHIL)
     lymphocytes = create_np_array(entries, the_db, constants.LYMPHOCYTE)
 
-    np.savez("data/pc9_collages_cleaned", neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
+    np.savez("data/pc9_collages_cleaned2", neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
              eosinophils=eosinophils, lymphocytes=lymphocytes)
 
 
