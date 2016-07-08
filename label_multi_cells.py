@@ -15,9 +15,10 @@ from entry import Entry
 from image_grid import MplCanvas, add_inner_title
 from label_single_cell import MyPopup
 import compare_coulter_counter
+import plot_canvas
 
 DATA_FILE_PATH = "data"
-DB_NAME = 'cell_labeled1.db'
+DB_NAME = 'cell_labeled1_paul.db'
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
@@ -39,6 +40,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.help_menu.addAction('&Documentation', self.about)
 
         self.stats_menu = QtWidgets.QMenu('&Stats', self)
+        self.stats_menu.addAction('&Export graph of patient statistics', self.plot_patient_stats)
         self.stats_menu.addAction('&Display current patient statistics', self.display_patient_stats)
         self.stats_menu.addAction('&Display global patient statistics', self.display_global_patient_stats)
         self.stats_menu.addAction('&Export global patient statistics', self.export_global_patient_stats)
@@ -106,6 +108,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 msbBox.setWindowTitle("Stats for patient: " + str(self.cur_patient))
                 retval = msbBox.exec_()
                 self.statusBar().showMessage('Ready')
+        else:
+            self.statusBar().showMessage('No data')
+
+    def plot_patient_stats(self):
+        if len(self.entries) > 0:
+            self.statusBar().showMessage('Calculating...')
+            self.stats.re_calculate(self.file_path)
+            path = QtWidgets.QFileDialog.getSaveFileName(self, 'PNG file', '.', '(*.png)')[0]
+            data = self.stats.get_counts()
+            #self.plot_popup = canvas_plot_popup.CanvasPlotPopup(self, data)
+            #self.plot_popup.show()
+            plotpopup = plot_canvas.CanvasPlot(data, path)
+            #plotpopup.compute_initial_figure(None)
+            self.statusBar().showMessage('Ready')
         else:
             self.statusBar().showMessage('No data')
 

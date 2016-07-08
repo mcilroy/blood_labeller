@@ -89,6 +89,25 @@ class Stats:
                (r_valuen['determination'], r_valuel['determination'], r_valuem['determination'],
                 r_valuee['determination'], r_valueb['determination'], r_valuew['determination'])
 
+    def get_counts(self):
+        temp_man_labels = dict()
+        indexes_remaining = dict()
+        for key in self.manual_labels:
+            mask = np.ones(len(self.manual_labels[key]), dtype=bool)
+            mask[self.nan_indexes[key]] = False
+            indexes_remaining[key] = []
+            for i, v in enumerate(mask):
+                if v:
+                    indexes_remaining[key].append(i)
+            temp_man_labels[key] = self.manual_labels[key][mask]
+
+        temp_coulter_labels = dict()
+        for key in self.coulter_labels:
+            mask = np.ones(len(self.coulter_labels[key]), dtype=bool)
+            mask[self.nan_indexes[key]] = False
+            temp_coulter_labels[key] = self.coulter_labels[key][mask]
+        return temp_coulter_labels, temp_man_labels, indexes_remaining
+
     def export_computed_global_patient_stats(self, path):
         if not path:
             return

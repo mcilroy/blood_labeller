@@ -12,7 +12,7 @@ class MplCanvas(FigureCanvas):
         self.main = main
         self.rows = rows
         self.cols = cols
-        self.fig = plt.figure()
+        self.fig = plt.figure(2)
         self.grid = ImageGrid(self.fig, 111, nrows_ncols=(rows, cols), label_mode="1", axes_pad=0.1,)
         self.axes = self.fig
         self.axes.hold(False)  # We want the axes cleared every time plot() is called
@@ -58,6 +58,7 @@ class MplCanvas(FigureCanvas):
                 t = add_inner_title(ax, "*", loc=2)
                 t.patch.set_ec("none")
                 t.patch.set_alpha(0.5)
+            plt.tight_layout()
             self.draw()
         else:
             artist = event.artist
@@ -86,8 +87,8 @@ class MplCanvas(FigureCanvas):
                         break
                 if not found:
                     self.grid.axes_all[idx].artists[0].txt._text._text = current_entries[idx].cell_type
-        self.draw()
         plt.tight_layout()
+        self.draw()
 
     def show_images(self):
         for ax in self.fig.axes:
@@ -118,6 +119,7 @@ class MplCanvas(FigureCanvas):
                             ax.artists[0].txt._text._text = current_entries[i].cell_type
                     else:
                         ax.artists[0].txt._text._text = ""
+        plt.tight_layout()
         self.draw()
 
     def select_all(self):
@@ -128,6 +130,7 @@ class MplCanvas(FigureCanvas):
                 t = add_inner_title(ax, "*", loc=2)
                 t.patch.set_ec("none")
                 t.patch.set_alpha(0.5)
+        plt.tight_layout()
         self.draw()
 
 

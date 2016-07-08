@@ -9,7 +9,7 @@ def main():
     The new file is used to perform machine learning. """
     DATA_LOCATION = 'data'
     FILE_NAME = 'pc9_collages.npz'
-    DB_NAME = 'cell_labeled1.db'
+    DB_NAME = 'cell_labeled1_paul.db'
     the_db = db.DB(os.path.join(DATA_LOCATION, DB_NAME), os.path.join(DATA_LOCATION, FILE_NAME), restart=False)
     entries = the_db.get_processed_clean_entries()
 
@@ -21,7 +21,7 @@ def main():
     filename, ext = os.path.splitext(FILE_NAME)
     print("neutro", len(neutrophils), "mono", len(monocytes), "baso", len(basophils), "eosin", len(eosinophils),
           "lympho", len(lymphocytes))
-    np.savez(os.path.join(DATA_LOCATION, filename+"_cleaned3"), neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
+    np.savez(os.path.join(DATA_LOCATION, filename+"_cleaned_paul"), neutrophils=neutrophils, monocytes=monocytes, basophils=basophils,
              eosinophils=eosinophils, lymphocytes=lymphocytes)
 
 
