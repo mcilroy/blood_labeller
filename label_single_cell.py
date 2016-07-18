@@ -68,6 +68,11 @@ class MyPopup(QWidget):
         self.button_no_cell.clicked.connect(self.button_no_cell_clicked)
         hbox2.addWidget(self.button_no_cell)
 
+        self.button_strangeeosin = QtWidgets.QPushButton("Weird Eosin.")
+        self.button_strangeeosin.setMaximumSize(150, 75)
+        self.button_strangeeosin.clicked.connect(self.button_strangeeosin_clicked)
+        hbox2.addWidget(self.button_strangeeosin)
+
         self.button_unlabeled = QtWidgets.QPushButton("Unlabeled")
         self.button_unlabeled.setMaximumSize(150, 75)
         self.button_unlabeled.clicked.connect(self.button_unlabeled_clicked)
@@ -106,6 +111,10 @@ class MyPopup(QWidget):
 
     def button_unlabeled_clicked(self):
         cell_type = constants.UNLABELED
+        self.process_button_clicked(cell_type)
+
+    def button_strangeeosin_clicked(self):
+        cell_type = constants.STRANGE_EOSINOPHIL
         self.process_button_clicked(cell_type)
 
     def process_button_clicked(self, cell_type):

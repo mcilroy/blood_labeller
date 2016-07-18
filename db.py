@@ -69,7 +69,7 @@ class DB:
         self.entries = []
         self.idx = 0
         c = self.conn.cursor()
-        c.execute('''SELECT * FROM cells''')
+        c.execute('''SELECT * FROM cells where file_name=?''', (self.file_name,))
         rows = c.fetchall()
         for row in rows:
             self.entries.append(Entry(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]))
@@ -86,24 +86,63 @@ class DB:
         # stored as batch, height, width, depth.
         self.file_name = ntpath.basename(str(file_path))
         train_val = np.load(str(file_path))
-        collages = train_val['collages']
-        self.training_images = collages
-        for x in xrange(len(self.training_images)):
-            self.training_images[x] = np.rollaxis(self.training_images[x], 1, 4)
+        try:
+            collages = train_val['candidates']
+            excluded = train_val['excluded']
+            for x in xrange(len(excluded)):
+                excluded[x] = np.rollaxis(excluded[x], 1, 4)
+            self.training_images = collages
+            for x in xrange(len(self.training_images)):
+                self.training_images[x] = np.rollaxis(self.training_images[x], 1, 4)
+            for i, patient_images in enumerate(self.training_images):
+                self.training_images[i] = np.concatenate((self.training_images[i], excluded[i]))
+        except KeyError:
+            collages = train_val['collages']
+            self.training_images = collages
+            for x in xrange(len(self.training_images)):
+                self.training_images[x] = np.rollaxis(self.training_images[x], 1, 4)
+
+    def load_from_multiple_files(self, file_names):
+        images = dict()
+        for file_name in file_names:
+            train_val = np.load(str(file_name))
+            try:
+                collages = train_val['candidates']
+                excluded = train_val['excluded']
+                for x in xrange(len(excluded)):
+                    excluded[x] = np.rollaxis(excluded[x], 1, 4)
+                temp_images = collages
+                for x in xrange(len(temp_images)):
+                    temp_images[x] = np.rollaxis(temp_images[x], 1, 4)
+                for i, patient_images in enumerate(temp_images):
+                    temp_images[i] = np.concatenate((temp_images[i], excluded[i]))
+            except KeyError:
+                collages = train_val['collages']
+                temp_images = collages
+                for x in xrange(len(temp_images)):
+                    temp_images[x] = np.rollaxis(temp_images[x], 1, 4)
+            images[ntpath.basename(str(file_name))] = temp_images
+        return images
 
     def num_patients(self):
         return len(self.training_images)
 
-    def get_processed_clean_entries(self):
+    def get_processed_clean_entries(self, file_name=""):
         entries = []
         c = self.conn.cursor()
-        c.execute('''SELECT patient_index, index_in_array, cell_type FROM cells where file_name=? AND (cell_type=? OR cell_type=? OR
-        cell_type=? OR cell_type=? OR cell_type=?) AND cut_off=0 AND more_than_one=0 AND obstructions=0 ''',
-                  (self.file_name, constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
-                   constants.BASOPHIL))
+        if file_name != "":
+            c.execute('''SELECT file_name, patient_index, index_in_array, cell_type FROM cells where file_name=? AND (cell_type=? OR cell_type=? OR
+                        cell_type=? OR cell_type=? OR cell_type=? OR cell_type=? OR cell_type=? OR cell_type=?)''',
+                      (file_name, constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
+                       constants.BASOPHIL, constants.STRANGE_EOSINOPHIL, constants.STRANGE_EOSINOPHIL, constants.NO_CELL))
+        else:
+            c.execute('''SELECT file_name, patient_index, index_in_array, cell_type FROM cells where (cell_type=? OR cell_type=? OR
+                        cell_type=? OR cell_type=? OR cell_type=? OR cell_type=? OR cell_type=? OR cell_type=?)''',
+                      (constants.NEUTROPHIL, constants.LYMPHOCYTE, constants.MONOCYTE, constants.EOSINOPHIL,
+                       constants.BASOPHIL, constants.STRANGE_EOSINOPHIL, constants.STRANGE_EOSINOPHIL, constants.NO_CELL))
         rows = c.fetchall()
         for row in rows:
-            entries.append(Entry(self.file_name, row[0], row[1], row[2], 0, 0, 0, 1, 0))
+            entries.append(Entry(row[0], row[1], row[2], row[3], 0, 0, 0, 1, 0))
         return entries
 
     ######### UNUSED #######

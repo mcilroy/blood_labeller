@@ -18,7 +18,7 @@ import compare_coulter_counter
 import plot_canvas
 
 DATA_FILE_PATH = "data"
-DB_NAME = 'cell_labeled1_paul.db'
+DB_NAME = 'cells.db'
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
@@ -47,7 +47,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.stats_menu.addAction('&Export raw labeled amounts per patient', self.export_raw_global_patient_stats)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.stats_menu)
-        self.stats = compare_coulter_counter.Stats(DATA_FILE_PATH, DB_NAME)
+        self.stats = None
         self.statusBar().showMessage('Ready')
         self.main_widget = None
         # db layer
@@ -61,6 +61,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.unsure = []
         self.no_cell = []
         self.unlabeled = []
+        self.strange_eosin = []
         self.pop_up = None
         self.display_opening_menu('Welcome. To load data go to : File -> Load Data')
         self.cur_patient = 0
@@ -154,8 +155,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.stats.re_calculate(self.file_path)
                 path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
                 self.stats.export_raw_global_patient_stats(path, zip(self.neutros, self.lymph, self.mono, self.eosin,
-                                                                     self.baso, self.unsure, self.no_cell,
-                                                                     self.unlabeled))
+                                                                     self.strange_eosin, self.baso, self.unsure,
+                                                                     self.no_cell, self.unlabeled))
                 self.statusBar().showMessage('Ready')
         else:
             self.statusBar().showMessage('No data')
@@ -172,6 +173,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #file_path = '/home/hallab/AlanFine/monocytes_neutrophils.npz'
         self.the_db = db.DB(os.path.join(DATA_FILE_PATH, DB_NAME), self.file_path, restart=False)
         self.initialize(self.cur_patient)
+        self.stats = compare_coulter_counter.Stats(DATA_FILE_PATH, DB_NAME, self.file_path)
 
     def initialize(self, cur_patient=0):
         self.cur_patient = cur_patient
@@ -187,6 +189,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cur_pg[constants.NO_CELL] = 0
         self.cur_pg[constants.NOT_SURE] = 0
         self.cur_pg[constants.UNLABELED] = 0
+        self.cur_pg[constants.STRANGE_EOSINOPHIL] = 0
         self.cell_per_pg = 51
         self.rows = 3
         self.cols = 17
@@ -201,6 +204,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.num_pages[constants.NO_CELL] = int(math.ceil(len(self.no_cell[self.cur_patient]) / self.cell_per_pg))
         self.num_pages[constants.NOT_SURE] = int(math.ceil(len(self.unsure[self.cur_patient]) / self.cell_per_pg))
         self.num_pages[constants.UNLABELED] = int(math.ceil(len(self.unlabeled[self.cur_patient]) / self.cell_per_pg))
+        self.num_pages[constants.STRANGE_EOSINOPHIL] = int(math.ceil(len(self.strange_eosin[self.cur_patient]) / self.cell_per_pg))
         self.set_current_entries()
         self.cur_images = self.the_db.get_currently_displayed_images(self.current_entries)
         self.modified = []
@@ -215,6 +219,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.unsure = [[] for w in range(self.num_patients)]
         self.no_cell = [[] for w in range(self.num_patients)]
         self.unlabeled = [[] for w in range(self.num_patients)]
+        self.strange_eosin = [[] for w in range(self.num_patients)]
         for entry in self.entries:
             if entry.cell_type == constants.NEUTROPHIL:
                 self.neutros[entry.patient_index].append(entry)
@@ -232,6 +237,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.unsure[entry.patient_index].append(entry)
             elif entry.cell_type == constants.UNLABELED:
                 self.unlabeled[entry.patient_index].append(entry)
+            elif entry.cell_type == constants.STRANGE_EOSINOPHIL:
+                self.strange_eosin[entry.patient_index].append(entry)
 
     def set_current_entries(self):
         if self.cur_cell_type == constants.NEUTROPHIL:
@@ -250,6 +257,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             blah = self.eosin[self.cur_patient]
         elif self.cur_cell_type == constants.UNLABELED:
             blah = self.unlabeled[self.cur_patient]
+        elif self.cur_cell_type == constants.STRANGE_EOSINOPHIL:
+            blah = self.strange_eosin[self.cur_patient]
         if self.cur_pg[self.cur_cell_type] > len(blah)/self.cell_per_pg:
             return []
         if (self.cur_pg[self.cur_cell_type]+1) * self.cell_per_pg > len(blah):
@@ -292,6 +301,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_unlabeled.clicked.connect(self.btn_unlabeled_clicked)
         btn_unlabeled.setMaximumSize(150, 75)
         self.lbl_unlabeled_count = QtWidgets.QLabel(str(len(self.unlabeled[self.cur_patient])))
+        btn_strangeeosin = QtWidgets.QPushButton("Weird Eosin.")
+        btn_strangeeosin.clicked.connect(self.btn_strangeeosin_clicked)
+        btn_strangeeosin.setMaximumSize(150, 75)
+        self.lbl_strangeeosin_count = QtWidgets.QLabel(str(len(self.strange_eosin[self.cur_patient])))
         spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_neutrophils)
@@ -300,16 +313,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         hbox.addWidget(self.lbl_lymph_count)
         hbox.addWidget(btn_monocytes)
         hbox.addWidget(self.lbl_monocytes_count)
-        vbox.addLayout(hbox)
-        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_eosinophil)
         hbox.addWidget(self.lbl_eosinophil_count)
         hbox.addWidget(btn_basophil)
         hbox.addWidget(self.lbl_basophil_count)
+        vbox.addLayout(hbox)
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(btn_unsure)
         hbox.addWidget(self.lbl_unsure_count)
         hbox.addWidget(btn_nocell)
         hbox.addWidget(self.lbl_nocell_count)
+        hbox.addWidget(btn_strangeeosin)
+        hbox.addWidget(self.lbl_strangeeosin_count)
         hbox.addWidget(btn_unlabeled)
         hbox.addWidget(self.lbl_unlabeled_count)
         vbox.addLayout(hbox)
@@ -365,9 +380,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         btn_save = QtWidgets.QPushButton("Save")
         btn_save.clicked.connect(self.btn_save_clicked)
         btn_save.setMaximumSize(150, 75)
-        btn_export = QtWidgets.QPushButton("Export")
-        btn_export.clicked.connect(self.btn_export_clicked)
-        btn_export.setMaximumSize(150, 75)
+        # btn_export = QtWidgets.QPushButton("Export")
+        # btn_export.clicked.connect(self.btn_export_clicked)
+        # btn_export.setMaximumSize(150, 75)
 
         dropdown_patient = QtWidgets.QComboBox()
         for x in range(self.num_patients):
@@ -423,6 +438,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.update_ui()
         self.change_cell_type()
 
+    def btn_strangeeosin_clicked(self):
+        self.cur_cell_type = constants.STRANGE_EOSINOPHIL
+        self.update_ui()
+        self.change_cell_type()
+
     def dropdown_patient_clicked(self, text):
         num = int(text.split(" ", 1)[1])
         self.cur_patient = num
@@ -449,6 +469,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.lbl_nocell_count.setText(str(len(self.no_cell[self.cur_patient])))
         self.lbl_unlabeled_count.setText(str(len(self.unlabeled[self.cur_patient])))
         self.lbl_unsure_count.setText(str(len(self.unsure[self.cur_patient])))
+        self.lbl_strangeeosin_count.setText(str(len(self.strange_eosin[self.cur_patient])))
 
     def change_cell_type(self):
         self.set_current_entries()
@@ -516,13 +537,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.update_ui()
         self.change_cell_type()
     
-    def btn_export_clicked(self):
-        path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
-        if not path: return
-        with open(path, 'w') as f:
-            f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
-            for i, x in enumerate(zip(self.neutros, self.lymph, self.mono, self.eosin, self.baso, self.unsure, self.no_cell, self.unlabeled)):
-                f.write(','.join(['%i' % (i+1)] + ['%i' % len(xi) for xi in x]) + '\n')
+    # def btn_export_clicked(self):
+    #     path = QtWidgets.QFileDialog.getSaveFileName(self, 'CSV file', '.', '(*.csv)')[0]
+    #     if not path: return
+    #     with open(path, 'w') as f:
+    #         f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Strange Eosinophil, Unsure, No Cell, Unlabelled\n')
+    #         for i, x in enumerate(zip(self.neutros, self.lymph, self.mono, self.eosin, self.baso, self.strange_eosin, self.unsure, self.no_cell, self.unlabeled)):
+    #             f.write(','.join(['%i' % (i+1)] + ['%i' % len(xi) for xi in x]) + '\n')
 
     def modify_bulk_entries(self, cell_type, cut_off, more_than_one, obstructions):
         for i, an_entry in enumerate(self.current_entries):

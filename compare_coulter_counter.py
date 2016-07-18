@@ -3,27 +3,40 @@ import numpy as np
 import constants
 import db
 import numpy
+import ntpath
 
-CONSTANTS = {constants.LYMPHOCYTE, constants.EOSINOPHIL, constants.BASOPHIL, constants.MONOCYTE, constants.NEUTROPHIL}
+CONSTANTS = {constants.LYMPHOCYTE, constants.EOSINOPHIL, constants.BASOPHIL, constants.MONOCYTE, constants.NEUTROPHIL, constants.STRANGE_EOSINOPHIL}
 COUNT_FILE_NAME = 'PC9_WBC_cc_scaled.npz'
+COUNT2_FILE_NAME = 'unknown'
+SCALE_FILE_NAME = 'coulter_counter_scale_factor.npy'  # when i get the new coulter counts i need to multiply each patients counts by corresponding patient's value in this file
 
 
 class Stats:
     """" compare the manually labelled data to the coulter counter counts to see how accurate our manual labelling is
     compared with the coulter counter. """
-    def __init__(self, data_location, db_name):
-        counts = np.load(os.path.join(data_location, COUNT_FILE_NAME))
-        self.coulter_labels = dict()
-        self.coulter_labels[constants.LYMPHOCYTE] = counts['lymph']
-        self.coulter_labels[constants.EOSINOPHIL] = counts['eosi']
-        self.coulter_labels[constants.NEUTROPHIL] = counts['neut']
-        self.coulter_labels[constants.MONOCYTE] = counts['mono']
-        self.coulter_labels[constants.BASOPHIL] = counts['baso']
-        self.coulter_labels['wbc'] = counts['wbc']
+    def __init__(self, data_location, db_name, file_path):
+        self.file_name = ntpath.basename(str(file_path))
+        if self.file_name == "pc9_collages.npz":
+            counts = np.load(os.path.join(data_location, "coulter_count", COUNT_FILE_NAME))
+            self.coulter_labels = dict()
+            self.coulter_labels[constants.LYMPHOCYTE] = counts['lymph']
+            self.coulter_labels[constants.EOSINOPHIL] = counts['eosi']
+            self.coulter_labels[constants.NEUTROPHIL] = counts['neut']
+            self.coulter_labels[constants.MONOCYTE] = counts['mono']
+            self.coulter_labels[constants.BASOPHIL] = counts['baso']
+            self.coulter_labels['wbc'] = counts['wbc']
+        elif self.file_name == "venous_vs_capillary.npz":
+            self.coulter_labels = dict()
+            self.coulter_labels[constants.LYMPHOCYTE] = np.ones(13)
+            self.coulter_labels[constants.EOSINOPHIL] = np.ones(13)
+            self.coulter_labels[constants.NEUTROPHIL] = np.ones(13)
+            self.coulter_labels[constants.MONOCYTE] = np.ones(13)
+            self.coulter_labels[constants.BASOPHIL] = np.ones(13)
+            self.coulter_labels['wbc'] = np.ones(13)
         self.num_patients = 0
         self.manual_labels = dict()
         self.data_location = data_location
-        self.file_name = ""
+
         self.db_name = db_name
         #self.indexes = np.array([10, 15, 29])  # remove 1 outlier (15) and 2 that don't have coulter counts
         self.nan_indexes = dict()
@@ -33,15 +46,15 @@ class Stats:
             mask[self.nan_indexes[key]] = False
             #self.coulter_labels[key] = self.coulter_labels[key][mask]
 
-    def re_calculate(self, file_name):
-        self.file_name = file_name
+    def re_calculate(self, file_path):
+        self.file_name = ntpath.basename(str(file_path))
         the_db = db.DB(os.path.join(self.data_location, self.db_name), os.path.join(self.data_location, self.file_name),
                        restart=False)
-        entries = the_db.get_processed_clean_entries()
-        self.num_patients = get_num_patients(entries)
+        entries = the_db.get_processed_clean_entries(self.file_name)
+        self.num_patients = the_db.num_patients()  # get_num_patients(entries)
         self.orig_indexes = np.arange(0, self.num_patients)
         self.manual_labels = self.compute_manual_labeled_stats(entries)
-        for key in self.manual_labels:
+        for key in self.coulter_labels:
             mask = np.ones(len(self.manual_labels[key]), dtype=bool)
             mask[self.nan_indexes[key]] = False
             #self.manual_labels[key] = self.manual_labels[key][mask]
@@ -69,7 +82,7 @@ class Stats:
 
     def display_global_patient_stats(self):
         temp_man_labels = dict()
-        for key in self.manual_labels:
+        for key in self.coulter_labels:
             mask = np.ones(len(self.manual_labels[key]), dtype=bool)
             mask[self.nan_indexes[key]] = False
             temp_man_labels[key] = self.manual_labels[key][mask]
@@ -147,22 +160,26 @@ class Stats:
         if not path:
             return
         with open(path, 'w') as f:
-            f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
+            f.write('Patient, Neutrophils, Lymphocytes, Monocytes, Eosinophils, Strange Eosinophils, Basophils, Unsure, No Cell, Unlabelled\n')
             for i, x in enumerate(data):
                 f.write(','.join(['%i' % (i+1)] + ['%i' % len(xi) for xi in x]) + '\n')
 
     def compute_manual_labeled_stats(self, entries):
         manual = dict()
         for c in CONSTANTS:
+            if c == constants.STRANGE_EOSINOPHIL:
+                continue
+            manual[c] = np.zeros(self.num_patients)
+        for c in CONSTANTS:
             for p in xrange(self.num_patients):
                 for x in xrange(len(entries)):
                     if entries[x].patient_index == p:
                         if entries[x].cell_type == c:
-                            if c not in manual:
-                                manual[c] = np.zeros(self.num_patients)  #[0] * num_patients
-                                manual[c][p] = 1
+                            if c == constants.STRANGE_EOSINOPHIL:
+                                new_c = constants.NEUTROPHIL
                             else:
-                                manual[c][p] += 1
+                                new_c = c
+                            manual[new_c][p] += 1
 
         manual['wbc'] = np.zeros(self.num_patients)
         for x in xrange(self.num_patients):
