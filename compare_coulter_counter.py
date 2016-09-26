@@ -2,12 +2,11 @@ import os
 import numpy as np
 import constants
 import db
-import numpy
 import ntpath
 
 CONSTANTS = {constants.LYMPHOCYTE, constants.EOSINOPHIL, constants.BASOPHIL, constants.MONOCYTE, constants.NEUTROPHIL, constants.STRANGE_EOSINOPHIL}
 COUNT_FILE_NAME = 'PC9_WBC_cc_scaled.npz'
-COUNT2_FILE_NAME = 'unknown'
+COUNT2_FILE_NAME = 'V_vs_C_cc_scaled.npz'
 SCALE_FILE_NAME = 'coulter_counter_scale_factor.npy'  # when i get the new coulter counts i need to multiply each patients counts by corresponding patient's value in this file
 
 
@@ -26,13 +25,14 @@ class Stats:
             self.coulter_labels[constants.BASOPHIL] = counts['baso']
             self.coulter_labels['wbc'] = counts['wbc']
         elif self.file_name == "venous_vs_capillary.npz":
+            counts = np.load(os.path.join(data_location, "coulter_count", COUNT2_FILE_NAME))
             self.coulter_labels = dict()
-            self.coulter_labels[constants.LYMPHOCYTE] = np.ones(13)
-            self.coulter_labels[constants.EOSINOPHIL] = np.ones(13)
-            self.coulter_labels[constants.NEUTROPHIL] = np.ones(13)
-            self.coulter_labels[constants.MONOCYTE] = np.ones(13)
-            self.coulter_labels[constants.BASOPHIL] = np.ones(13)
-            self.coulter_labels['wbc'] = np.ones(13)
+            self.coulter_labels[constants.LYMPHOCYTE] = counts[constants.LYMPHOCYTE]
+            self.coulter_labels[constants.EOSINOPHIL] = counts[constants.EOSINOPHIL]
+            self.coulter_labels[constants.NEUTROPHIL] = counts[constants.NEUTROPHIL]
+            self.coulter_labels[constants.MONOCYTE] = counts[constants.MONOCYTE]
+            self.coulter_labels[constants.BASOPHIL] = counts[constants.BASOPHIL]
+            self.coulter_labels['wbc'] = counts['wbc']
         self.num_patients = 0
         self.manual_labels = dict()
         self.data_location = data_location
@@ -201,18 +201,18 @@ def get_num_patients(entries):
 def polyfit(x, y, degree):
     results = {}
 
-    coeffs = numpy.polyfit(x, y, degree)
+    coeffs = np.polyfit(x, y, degree)
 
      # Polynomial Coefficients
     results['polynomial'] = coeffs.tolist()
 
     # r-squared
-    p = numpy.poly1d(coeffs)
+    p = np.poly1d(coeffs)
     # fit values, and mean
     yhat = p(x)                         # or [p(z) for z in x]
-    ybar = numpy.sum(y)/len(y)          # or sum(y)/len(y)
-    ssreg = numpy.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
-    sstot = numpy.sum((y - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
+    ybar = np.sum(y)/len(y)          # or sum(y)/len(y)
+    ssreg = np.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
+    sstot = np.sum((y - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
     results['determination'] = ssreg / sstot
 
     return results

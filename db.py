@@ -89,6 +89,9 @@ class DB:
         try:
             collages = train_val['candidates']
             excluded = train_val['excluded']
+            #on_border = train_val['on_border']
+            #for patient in on_border:
+            #    print(len(patient))
             for x in xrange(len(excluded)):
                 excluded[x] = np.rollaxis(excluded[x], 1, 4)
             self.training_images = collages

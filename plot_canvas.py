@@ -18,10 +18,12 @@ class CanvasPlot():
             plt.subplot(3, 2, count)
             #self.fig.add_subplot(blah)
             count += 1
+            length = max(max(manual_data[key]), max(coulter_data[key]))
+            plt.axis([0, length, 0, length])
             plt.scatter(manual_data[key], coulter_data[key])
             plt.title(key)
-            plt.ylabel('Coulter Counter Data')
-            plt.xlabel('Manual Data')
+            plt.ylabel('Coulter Counter')
+            plt.xlabel('Manual Labeled')
             for i, index in enumerate(patient_indexes[key]):
                 plt.annotate(str(index), xy=(manual_data[key][i], coulter_data[key][i]), xytext=(-20, 20),
                              textcoords='offset points', ha='right', va='bottom',
